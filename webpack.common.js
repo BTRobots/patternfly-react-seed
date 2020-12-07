@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
@@ -11,7 +12,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'src', 'index.html')
-    })
+    }),
   ],
   module: {
     rules: [
@@ -88,6 +89,10 @@ module.exports = {
         }
       },
       {
+        test: /\.json$/,
+        loader: 'json'
+      },
+      {
         test: /\.(jpg|jpeg|png|gif)$/i,
         include: [
           path.resolve(__dirname, 'src'),
@@ -97,7 +102,8 @@ module.exports = {
           path.resolve(__dirname, 'node_modules/@patternfly/react-core/dist/styles/assets/images'),
           path.resolve(__dirname, 'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images'),
           path.resolve(__dirname, 'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images'),
-          path.resolve(__dirname, 'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images')
+          path.resolve(__dirname, 'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images'),
+          path.resolve(__dirname, 'assets')
         ],
         use: [
           {

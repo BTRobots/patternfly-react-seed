@@ -1,11 +1,18 @@
 const path = require('path');
 const merge = require("webpack-merge");
 const common = require("./webpack.common.js");
+const webpack = require('webpack');
+const { development: { CLIENT_ID } } = require('./oauth');
 
 const HOST = process.env.HOST || "0.0.0.0";
-const PORT = process.env.PORT || "9000";
+const PORT = process.env.PORT || "9200";
 
 module.exports = merge(common, {
+  plugins: [
+    new webpack.DefinePlugin({
+      GOOGLE_LOGIN_CLIENT_ID: JSON.stringify(CLIENT_ID),
+    })
+  ],
   mode: "development",
   devtool: "eval-source-map",
   devServer: {
@@ -17,7 +24,8 @@ module.exports = merge(common, {
     historyApiFallback: true,
     hot: true,
     overlay: true,
-    open: true
+    open: true,
+    disableHostCheck: true,
   },
   module: {
     rules: [

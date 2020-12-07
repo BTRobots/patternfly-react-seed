@@ -4,7 +4,9 @@ import { Alert, PageSection } from '@patternfly/react-core';
 import { DynamicImport } from '@app/DynamicImport';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
 import { Dashboard } from '@app/Dashboard/Dashboard';
+import { Editor } from '@app/Editor/Editor';
 import { NotFound } from '@app/NotFound/NotFound';
+import { Login } from '@app/Login/Login.tsx'
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { LastLocationProvider, useLastLocation } from 'react-router-last-location';
 
@@ -52,9 +54,16 @@ const routes: IAppRoute[] = [
   {
     component: Dashboard,
     exact: true,
-    label: 'Dashboard',
+    label: 'Dash',
     path: '/',
     title: 'Main Dashboard Title'
+  },
+  {
+    component: Editor,
+    exact: true,
+    label: 'Editor',
+    path: '/Editor',
+    title: 'BTRobots Editor'
   },
   {
     component: Support,
@@ -63,7 +72,7 @@ const routes: IAppRoute[] = [
     label: 'Support',
     path: '/support',
     title: 'Support Page Title'
-  }
+  },
 ];
 
 // a custom hook for sending focus to the primary content container
