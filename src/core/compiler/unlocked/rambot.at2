@@ -1,0 +1,86 @@
+; RAMBOT
+;  by Philip Taylor
+;  http://www.zaynar.demon.co.uk/atr - AUWSAAGCATR!
+;         atr@zaynar.demon.co.uk
+;
+; This isn't a particularly good robot, but makes use of the new ATR2.04
+; features - mines! It drives towards the enemy, then when it's close enough
+; it drops six mines and detonates them all! It's got a max speed two times
+; that of normal robots, because of maximum engines and minimum armour,
+; and is probably faster than most other robots. It's got very low weapon
+; and heatsink values - missiles aren't its main weapon.
+; Sometimes it goes a bit mad and just turns round on the spot, and I'm not
+; sure why it does this...
+;  I've also made it reverse for a few cycles after dropping the mines and
+; before exploding, because in version 2.05 mines damage *all* robots,
+; including the one who layed it!
+;
+; Anyone can distribute this robot and read it and mess around with it and
+; improve it - although please don't then pretend that you wrote it all!
+
+#config scanner=4
+#config weapon=0
+#config armor=0
+#config engine=5
+#config heatsinks=0
+#config mines=3
+#config shield=0
+
+#def scan
+#def acc
+#def heat
+   opo   20,         350
+   opo   13,         0
+   opo   17,         16
+   opo   11,         100
+
+   mov   ax,         1
+   int   3
+
+:10
+   ipo   7,          scan
+   cmp   scan,       2000
+   jgr   20
+   cmp   @5,         9318
+   jne   30
+   int
+
+:20
+   opo   12,         60
+   jmp   10
+
+:30
+   opo   11,         100
+   opo   14,         @2
+:70
+   cmp   @2,         0
+   jne   70
+
+   mov   ax,         1
+   int   3
+
+:35
+   opo   14,         @2
+   ipo   2,          heat
+   cmp   heat,       150
+   jge   40
+   opo   15
+:40
+   ipo   7,          scan
+   mov   acc,        @3
+   shl   acc,        4
+   opo   14          acc
+   cmp   scan,       2000
+   jgr   10
+   cmp   scan,       20
+   jgr   35
+
+   opo   22,         0
+   opo   22,         0
+   opo   22,         0
+   opo   22,         0
+   opo   22,         0
+   opo   22,         0
+   opo   11,         -100
+   del   75
+   opo   23

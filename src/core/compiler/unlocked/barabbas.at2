@@ -1,0 +1,210 @@
+; barabbas.at2
+; author: Aapo Haapanen
+;         ah56846@uta.fi
+;
+; THIS ROBOT MAY BE FREELY DISTRIBUTED AND MODIFIED
+;
+; -scans area for enemy robot quite quickly
+; -if it finds out that the enemy is not moving,
+;    it tries to kill it immedistely
+; -otherwise it just tries to keep moving and shooting at the enemy,
+;    waiting for the enemy to stop (f.ex. by getting stuck in a corner)
+
+#msg ajh 1.3.1997
+
+#def apu
+#def armor
+
+; beginning of the program
+   mov   ax       1
+   int   i_keepshift
+   opo   p_throttle 100
+   ipo   p_armor  armor
+!start
+   call  !scan                   ; where are you?
+   cmp   ax       1500           
+   jgr   !loop                   
+!start2
+   int   i_targetinfo            ; let's see what kind of 
+                                 ;    fish we have caught...
+   cmp   fx       0              ; if it is not moving, then let's kill it!
+   jeq   !destroy
+   mov   apu      ex      
+   and   apu      127            ; kill the 128-bit of the heading of enemy
+   cmp   apu      126            ; it is coming directly this way: DESTROY!
+   jgr   !destroy
+   cmp   apu      2
+   jls   !destroy
+   opo   p_fire   0
+   jmp   !loop
+
+!move00
+   opo   p_ofs_turret 32
+!move
+   ipo   p_turret_ofs ax   
+   add   ax          72
+   opo   p_steering  ax
+   opo   p_throttle  100
+   ipo   p_armor     armor
+!loop
+   ipo   p_armor     ax
+   cmp   ax          armor
+   jls   !move00
+   int   i_locate
+   cmp   ex          200
+   jgr   !m1
+   cmp   @1          128
+   jls   !m1
+   cmp   @1          192
+   jgr   !m01
+   opo   p_steering  -30
+   jmp   !m4
+!m01
+   opo   p_steering  30
+   jmp   !m4
+!m1
+   cmp   ex          800
+   jls   !m2
+   cmp   @1          128
+   jgr   !m2
+   cmp   @1          64
+   jgr   !m11
+   opo   p_steering  -30
+   jmp   !m4
+!m11
+   opo   p_steering  30
+   jmp   !m4
+!m2
+   cmp   fx          200
+   jgr   !m3b
+   cmp   @1          64
+   jls   !m31
+   cmp   @1          192
+   jgr   !m32
+   jmp   !m3b
+!m31
+   opo   p_steering  30
+   jmp   !m4
+!m32
+   opo   p_steering  -30
+   jmp   !m4
+!m3b
+   cmp   fx          800
+   jls   !m4
+   cmp   @1          64
+   jls   !m4
+   cmp   @1          192
+   jgr   !m4
+   cmp   @1          128
+   jls   !m41
+   opo   p_steering  30
+   jmp   !m4
+!m41
+   opo   p_steering  -30
+!m4
+   opo   p_throttle  100
+   ipo   p_heat      ax
+   cmp   ax          100
+   jgr   !loop
+   call  !004b
+   ipo   p_scan      ax
+   cmp   ax          1500
+   jgr   !start
+   jmp   !start2
+
+!scan
+   opo   p_arc       64
+   ipo   p_scan      ax
+   cmp   ax          1500
+   jls   !001
+   opo   p_ofs_turret -96
+   jmp   !001b
+!001
+   opo   p_ofs_turret 32
+!001b
+   opo   p_arc    32
+   ipo   p_scan   ax
+   cmp   ax       1500
+   jls   !002
+   opo   p_ofs_turret -48
+   jmp   !002b
+!002
+   opo   p_ofs_turret 16
+!002b
+   opo   p_arc    16
+   ipo   p_scan   ax
+   cmp   ax       1500
+   jls   !003
+   opo   p_ofs_turret -24
+   jmp   !003b
+!003
+   opo   p_ofs_turret 8
+!003b
+   opo   p_arc    8
+   ipo   p_scan   ax
+   cmp   ax       1500
+   jls   !004
+   opo   p_ofs_turret -12
+   jmp   !004b
+!004
+   opo   p_ofs_turret 4
+!004b
+   opo   p_arc    4
+   ipo   p_scan   ax
+   cmp   ax       1500
+   jls   !endscan
+   opo   p_ofs_turret -8
+   ipo   p_scan   ax
+!endscan
+ret
+
+!destroy
+opo   p_throttle 0
+!arc2
+opo      p_arc          2
+opo      p_ofs_turret   2
+ipo      p_scan         ax
+cmp      ax             1500
+jls      !arc1
+opo      p_ofs_turret   -3
+jmp      !arc1b
+!arc1
+opo      p_ofs_turret   1
+!arc1b
+opo      p_arc          1
+ipo      p_scan         ax
+cmp      ax             1500
+jls      !arc0
+opo      p_ofs_turret   -2
+!arc0
+opo      p_arc          0
+ipo      p_scan         ax
+cmp      ax             1500
+jls      !doomsday
+opo      p_ofs_turret   1
+ipo      p_scan         ax
+cmp      ax             1500
+jls      !doomsday
+opo      p_ofs_turret   -2
+ipo      p_scan         ax
+cmp      ax             1500
+jls      !doomsday
+jmp      !move
+
+!doomsday
+mov ax 1
+int i_overburn
+opo      p_fire
+opo      p_fire
+opo      p_fire
+opo      p_fire
+opo      p_fire
+opo      p_fire
+opo      p_fire
+opo      p_fire
+opo      p_fire
+opo      p_fire
+opo      p_overburn        0
+jmp !move
+
+

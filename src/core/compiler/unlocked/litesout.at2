@@ -1,0 +1,130 @@
+;LITES OUT   by: Jeremiah Martell  ~aka~  PsuedoChaos
+;fires continuously and the best part is its hit/miss ratio.
+;it hits a lot more than it misses (on most bots that is).
+;one funny thing is that it moves really slow (15)
+;and it seems that at this speed other bots have a hard
+;time hitting it.  hehe
+;anyway, this is VER 1.0  another bot of mine, THEORY,
+;is just a close brother of LITES OUT.  which I made
+;with different settings and some tweaks.
+;enjoy!  =)
+;
+; (distributable after competition)
+
+#msg Continuous beating
+#def    overheat
+#def    turndir
+        mov     turndir,        16
+        ipo     3,      ax      ;returns current heading
+        mov     bx,     255     ;\
+        sub     bx,     ax      ; |_rotates tank to 32
+        add     bx,     32      ; |
+        opo     14,     bx      ;/ 
+        xor     bx,     bx      ;\_resets ax and bx to 0
+        xor     ax,     ax      ;/
+
+        opo     17,     15      ;sets scan arc
+        mov     ax,     1       ;\_sets keepshift on
+        int     3               ;/
+        xor     ax,     ax      ;resets ax
+:1      ;moving
+        opo     11,     15
+        ipo     3,      ax
+        int     2
+        cmp     ex,     970
+        jgr     7
+        cmp     ex,     30
+        jls     8
+        cmp     fx,     970
+        jgr     10
+        cmp     fx,     30
+        jls     9
+:2      ;aiming and shooting
+        cmp     cx,     0
+        jgr     3
+        ipo     7,      bx      ;scan
+        cmp     bx,     1500    ;anything there
+        jgr     30              ;if not go to 30
+        ipo     8,      dx      ;if there fing accuracy
+        cmp     dx,     0
+        jgr     50
+        jls     51
+:100
+        mpy     dx,     6
+        opo     17,     6       ;sets scan arc 
+        opo     12,     dx
+:3
+        mov     cx,     1
+        xor     dx,     dx      ;reset dx
+        ipo     7,      bx      ;scan
+        cmp     bx,     1500    ;anything there?
+        jgr     30              ;if not go to 30
+        ipo     8,      dx      ;if there is find accuracy
+        shl     dx,     2
+        opo     12,     dx      ;rotate turret depending on accuracy
+        cmp     overheat,       0
+        jgr     41
+        ipo     2,      ex      ;see how hot you are
+        cmp     ex,     300     ;overheating?
+        jgr     1               ;if so jump 
+        shl     dx
+        opo     15,     dx              ;shoot
+        jmp     1
+
+:7
+        cmp     ax,     128
+        jgr     2
+        cmp     ax,     64
+        jgr     20
+        jmp     21
+:8
+        cmp     ax,     128
+        jls     2
+        cmp     ax,     192
+        jgr     20
+        jmp     21
+:9
+        cmp     ax,     192
+        jls     11
+        jmp     21
+:10
+        cmp     ax,     128
+        jgr     12
+        jmp     21
+:11
+        cmp     ax,     64
+        jgr     2
+        jmp     20
+:12
+        cmp     ax,     192
+        jls     20
+        jmp     2
+:20
+        opo     14,     64
+        jmp     2
+:21
+        opo     14,     -64
+        jmp     2
+:30
+        mov     cx,     0
+        opo     17,     15
+        opo     12,     turndir
+        jmp     1
+
+
+
+
+        
+:50
+        cmp     turndir,        0
+        jgr     100
+        neg     turndir
+        jmp     100
+:51
+        cmp     turndir,        0
+        jls     100
+        neg     turndir
+        jmp     100
+
+        
+        

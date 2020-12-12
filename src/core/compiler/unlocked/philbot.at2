@@ -1,0 +1,222 @@
+; Philbot.AT2
+;  by Philip Taylor
+;  http://www.zaynar.demon.co.uk/atr - AUWSAAGCATR!
+;         atr@zaynar.demon.co.uk
+; This robot is quite large (about 11kb!) but it's only 200 lines - I've just
+; commented every single line and written the amount of cycles it takes to
+; complete the line at the end, making every line about 75 bytes :-)
+; Anyone mad enough to try comprehending this robot may be helped by reading
+; all the comments, and the numbers on the right just helped me work out how
+; long things would take.
+;  Basically, it goes forwards until it gets within 150m of the edge of the
+; arena, then it turns round and carries on. If it sees an enemy it turns
+; towards them and shoots. If the target isn't moving, it turns on overburn
+; to finish them off. It might do some other stuff, but I can't remember
+; anything else!
+;
+; Anyone can distribute this robot and read it and mess around with it and
+; improve it - although please don't then pretend that you wrote it all!
+
+#config   scanner=3
+#config    weapon=4
+#config     armor=2
+#config    engine=1
+#config heatsinks=2
+#config     mines=0
+#config    shield=0
+
+#msg AUWSAAGCATR!
+#def accuracy
+#def target
+#def maxheat
+#def curheat
+#def tur_rate
+#def tur_rate1
+#def tur_rate2
+#def cur_ang
+#def turn_ang
+
+; **************************************************************************
+
+   opo   19,         9318        ; set transponder ID                      4
+
+   opo   11,         100         ; set throttle                            4
+   opo   17,         3           ; set scan arc                            4
+   mov   tur_rate1   5           ; set normal turret rotation speed        1
+   mov   tur_rate2   -5          ; set backwards turret rotation speed     1
+   mov   tur_rate    tur_rate1   ; set current turret rotation speed       1
+   opo   20,         450         ; set shutdown level                      4
+   mov   maxheat,    300         ; heat = max heat to fire with            1
+   mov   ax,         1           ; \ turn keepshift on                     1
+   int   3                       ; /                                       2
+
+:10
+
+   ipo   7,          target      ; Scan for enemy                          5
+
+   cmp   target,     2000                                                  1
+   jgr   20                      ; go to 20 if no target found             0
+
+   cmp   @2,         0           ; \ go to 15 if turret forwards           1
+   jeq   15                      ; /                                       0
+   opo   14,         @2          ; rotate so turret is forwards            4
+   cmp   @1,         100         ; \ go to 15 if not full throttle         1
+   jne   15                      ; /                                       0
+   opo   11,         100         ; set throttle                            4
+
+:15
+   call  !aimbetter              ; Adjust aim                              1
+   call  !coolfire               ; Fire! (if cool enough)                  1
+   jeq   10                      ; \ jump to 10                            0
+   jne   10                      ; /                                       0
+
+:20
+   call  !navigate
+
+   opo   12,         tur_rate    ; rotate turret                           4
+   jeq   10                      ; \ jump to 10                            0
+   jne   10                      ; /                                       0
+
+; **************************************************************************
+
+!aimbetter  ; 1xx   adds 0 - 20 heat
+   cmp   curheat,    maxheat     ; compare current heat and max heat       1
+   jge   130                     ; if heat => max heat then go to 130      0
+
+   cmp   @3,         0           ; compare accuracy to 0                   1
+   jls   110                     ; accuracy < 0  go to 110                 0
+   jgr   120                     ; accuracy > 0  go to 120                 0
+   ret                           ; exit sub                                1
+:110
+   opo   15,         -3          ; fire 3 degrees to left                  7
+   opo   12,         -1          ; rotate turret 1 degree to left          4
+   mov   tur_rate,   tur_rate2   ; set turret rotation                     1
+   ret                           ; exit sub                                1
+:120
+   opo   15,         3           ; fire 3 degrees to right                 7
+   opo   12,         1           ; rotate turret 1 degree to right         4
+   mov   tur_rate,   tur_rate1   ; set turret rotation                     1
+   ret                           ; exit sub                                1
+
+:130
+   cmp   @3,         0           ; compare accuracy to 0                   1
+   jls   140                     ; accuracy < 0  go to 140                 0
+   jgr   150                     ; accuracy > 0  go to 150                 0
+   ret                           ; exit sub                                1
+:140
+   opo   12,         -1          ; rotate turret 1 degree to left          4
+   mov   tur_rate,   tur_rate2   ; set turret rotation                     1
+   ret                           ; exit sub                                1
+:150
+   opo   12,         1           ; rotate turret 1 degree to right         4
+   mov   tur_rate,   tur_rate1   ; set turret rotation                     1
+   ret                           ; exit sub                                1
+
+; **************************************************************************
+
+!coolfire  ; 2xx   adds 0 - 60 heat
+   ipo   2,          curheat     ; find current heat level                 4
+   cmp   curheat,    maxheat     ; compare current heat and max heat       1
+   jge   250                     ; if heat => max heat then go to 250      0
+   cmp   @6,         0           ; check heading of target                 1
+   jeq   270                     ; go to 270 if target aiming forwards     0
+   cmp   @6,         128         ; check heading of target                 1
+   jeq   270                     ; go to 270 if target aiming backwards    0
+   cmp   @7,         0           ; check speed of target                   1
+   jne   220                     ; go to 220 if target moving              0
+
+:270
+   cmp   @3,         0           ; \ go to 250 if accuracy <> 0            1
+   jne   250                     ; /                                       0
+
+   call  !narrowscan
+   cmp   @3,         0           ; \ go to 250 if accuracy <> 0            1
+   jne   250                     ; /                                       0
+
+   opo   11,         0           ; set throttle                            4
+   mov   ax,         1           ; \ turn on overburn                      1
+   int   4                       ; /                                       1
+:210
+   opo   15                      ; fire ahead                              7
+   opo   15                      ; fire ahead                              7
+   opo   15                      ; fire ahead                              7
+
+   ipo   2,          curheat     ; find current heat level                 4
+   cmp   curheat,    maxheat     ; compare current heat and max heat       1
+   jge   260                     ; if heat => max heat then go to 260      0
+
+   cmp   @7,         0           ; \                                       1
+   jeq   210                     ; / jump to 210 if target not moving      0
+
+:260
+   opo   11,         100         ; set throttle                            4
+   mov   ax,         0           ; \ turn off overburn                     1
+   int   4                       ; /                                       1
+
+   ret                           ; exit sub                                1
+
+
+:220
+   cmp   @6,         128         ; check heading of target                 1
+   jls   230                     ; if target facing right, go to 230       1
+   jgr   240                     ; if target facing left, go to 240        1
+   opo   15                      ; fire ahead                              7
+:230
+   opo   15,         2           ; fire 2 degrees to the right             7
+   ret                           ; exit sub                                1
+:240
+   opo   15,         -2          ; fire 2 degrees to the left              7
+   ret                           ; exit sub                                1
+:250
+   ret                           ; exit sub                                1
+
+; **************************************************************************
+
+!narrowscan
+   opo   17,         0           ; set scan arc                            4
+   ipo   7,          target      ; Scan for enemy                          5
+   opo   17,         3           ; set scan arc                            4
+   ret                           ; exit sub                                1
+
+; **************************************************************************
+!navigate   ; 3xx
+   int   2                       ; EX = x coord, FX = y coord              5
+   cmp   ex,         150         ; \ jump to 310 if x < 150                1
+   jle   310                     ; /                                       0
+   cmp   ex,         850         ; \ jump to 320 if x > 850                1
+   jge   320                     ; /                                       0
+   cmp   fx,         150         ; \ jump to 330 if y < 150                1
+   jle   320                     ; /                                       0
+   cmp   fx,         850         ; \ jump to 340 if y > 850                1
+   jge   320                     ; /                                       0
+   ret                           ; exit sub                                1
+:310
+   mov   cur_ang,    @1          ; cur_ang  = current angle                1
+   mov   turn_ang,   64          ; turn_ang = 64 (right)                   1
+   sub   cur_ang,    turn_ang    ; cur_ang = 64 - turn_ang                 1
+   opo   14,         cur_ang     ; turn                                    4
+   ret                           ; exit sub                                1
+
+:320
+   mov   cur_ang,    @1          ; cur_ang  = current angle                1
+   mov   turn_ang,   192         ; turn_ang = 192 (left)                   1
+   sub   cur_ang,    turn_ang    ; cur_ang = 192 - turn_ang                1
+   opo   14,         cur_ang     ; turn                                    4
+   ret                           ; exit sub                                1
+
+:330
+   mov   cur_ang,    @1          ; cur_ang  = current angle                1
+   mov   turn_ang,   128         ; turn_ang = 128 (down)                   1
+   sub   cur_ang,    turn_ang    ; cur_ang = 128 - turn_ang                1
+   opo   14,         cur_ang     ; turn                                    4
+   ret                           ; exit sub                                1
+
+:340
+   mov   cur_ang,    @1          ; cur_ang  = current angle                1
+   mov   turn_ang,   0           ; turn_ang = 0 (up)                       1
+   sub   cur_ang,    turn_ang    ; cur_ang = 0 - turn_ang                  1
+   opo   14,         cur_ang     ; turn                                    4
+   ret                           ; exit sub                                1
+
+#END
+

@@ -1,0 +1,68 @@
+; First blood part 2,
+; Copyright: Christoffer Andersson, Norway.
+; This robot is MY OWN!!
+; This sucker is basically the same as the first.
+; The only real difference is difference in angles.
+
+
+#def speed
+#def target
+#def heat
+#def get
+#def maxspeed
+
+        opo p_scanarc, 7
+        mov ax, 1
+        int i_keepshift
+        opo p_throttle, 100
+        mov maxspeed, 100
+:1
+        
+        opo p_steering, 4
+        opo p_trotate, -8
+        ipo p_scan, target
+        cmp target, 1500
+        jb 2
+        ipo p_spedometer, speed
+        cmp speed 0
+        je 4
+        jmp 1
+
+:2
+        ipo p_heat, heat
+        cmp heat, 250
+        ja 3        
+        ipo p_accuracy,  get
+        mpy get, 2
+        opo 15, get
+        opo p_trotate, get
+        ipo P_spedometer speed
+        cmp speed 0
+        je 51
+:23        
+
+        opo p_steering 5
+        ipo p_scan, target
+        cmp target, 1500
+        jb 2
+        jmp 1
+
+:3
+        opo p_steering -4
+        ipo p_spedometer, speed
+        cmp speed 0
+        je 4
+        ipo p_heat, heat
+        cmp heat 50
+        ja 3
+        jmp 1
+        
+:4
+        neg maxspeed 
+        opo p_throttle, maxspeed
+        jmp 1
+:51
+        neg maxspeed
+        opo p_throttle, maxspeed
+        jmp 23
+        

@@ -1,0 +1,166 @@
+;
+; Bluefire, Bluefires fighting robot!
+;The first i ever made (however i've added some config lines)
+;May be freely distributed after january 22 1999
+
+;tactics: scan the enemy and follow him.
+;This robot as well as my "helpfire" will be a sitting duck while meeting UB091
+
+;variable declarations
+#config scanner=4
+#config engine=1
+#config armor=4
+
+#def turn_rate
+#def find_target
+#def shoot
+#def arc 
+#def hittime
+#def fighton
+#def sduck
+
+mov fighton,4
+mov sduck ,1000
+
+;code
+out	P_channel,		6670		;set to the right com channel
+OUT	P_CHANNEL,		6670	;If it is one of the friendly robots, order
+MOV	AX,			6215	;him to drop dead
+INT	I_TRANSMIT			;
+nop						;Give him time to send the secret code
+nop
+nop
+nop
+nop
+nop
+
+int	i_dataready
+cmp	fx,			0		;received anything?
+je	fighton					;Nope, normal fighting mode
+
+int	i_receive				; something in, receive it.
+cmp	fx,			6215		;Is it the correct code?
+je	sduck					;Yep, wait to be killed
+
+:4
+opo 20,300     ;shutdown-level on 300
+opo 13,0       ;turret to 0 degrees
+
+mov turn_rate,4
+
+set find_target 100
+set shoot 200
+
+:99
+gsb find_target
+opo 17,2
+gsb shoot
+jmp 99
+
+
+:115
+opo 14,16
+jmp 110
+
+:100
+opo 11,100
+opo 17,16
+:110
+ipo 9,ax
+cmp ax,50
+ja 22
+gsb 300
+:22
+
+int 6
+sub fx,hittime
+cmp fx,400
+jb 19
+int 11
+;sub fx,hittime
+cmp fx,400
+jb 19
+int 6
+mov hittime,fx
+gsb 300
+:19
+
+ipo 7,ax
+cmp ax,2000
+ja 115
+
+ipo 8,ax
+add ax,ax
+add ax,ax
+add ax,ax
+opo 14,ax
+opo 17,4
+ipo 7,ax
+cmp ax,2000
+ja 100
+cmp ax,9
+ja 12
+gsb 300
+:12
+ipo 8,ax
+add ax,ax
+opo 14,ax
+ret
+
+:200
+
+ipo 7,ax
+cmp ax,2000
+ja 40
+ipo 9,bx
+cmp bx,9
+ja 14
+gsb 300
+ret
+:14
+ipo 8,ax
+:195
+ipo 2,bx
+cmp bx,260
+ja 195
+opo 15,ax
+opo 14,ax
+jmp 200
+:40
+
+:50
+ret
+
+:300
+opo 14,128
+opo 11,100
+opo 13,128
+opo 17,6
+
+:1
+int 2
+
+cmp fx,20
+jb 132
+cmp ex,20
+jb 132
+cmp fx,980
+ja 132
+cmp ex,980
+ja 132
+ipo 1,ax
+cmp ax,0
+jz 132
+ipo 7,ax
+cmp ax,2000
+ja 1
+ipo 8,bx
+add bx,bx
+opo 15,bx
+jmp 1
+:132
+opo 13,0
+ret
+;sduck
+:1000
+jmp 1000

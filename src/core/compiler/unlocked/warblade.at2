@@ -1,0 +1,280 @@
+; #########################################
+; #             Warblade V2.3             #
+; # ------------------------------------- #
+; #      by Alexander Beisig (Tycho)      #
+; #########################################
+;
+; 12/18/1998
+; Email: R.A.Beisig@t-online.de
+; Coded for ATRobots V2.05
+; 
+; ------
+; If you want to use ideas from this robot, I would be very pleased if you would
+; follow these three rules:
+;
+; (1) Do not just copy it.
+;     I wrote every line of the code myself, but many ideas I used came from Coroner
+;     (Which I consider the best robot around)
+; (2) Do not lock your robot (with ATRLock).
+;     If you use ideas from other people, don't you think it's just fair if other people
+;     can see your ideas?
+; (3) Mention the robot you took your ideas from.
+;     I don't hide that this robot was inspired by Coroner either, do I?
+; ------
+;
+#config scanner=3
+#config weapon=2
+#config armor=2
+#config engine=4
+#config heatsinks=1
+#config mines=0
+#config shield=0
+#def dist
+#def arc
+#def rot
+#def heat
+#def have
+#def want
+#def dir
+#def skip
+	ipo	10	ax	; get random
+	opo	19	ax	; set random ID	
+	opo	11	100	; full throttle!
+	mov	arc	64	; acc = 64
+	mov	ax	1	; ax = 1
+	int	3		; keepshift on
+
+	put	0	448
+	put	0	449
+	put	1	450
+	put	1	451
+	put	2	452
+	put	2	453
+	put	3	454
+	put	3	455
+	put	3	456
+	put	4	457
+	put	4	458
+	put	4	459
+	put	4	460
+	put	4	461
+	put	5	462
+	put	5	463
+	put	5	464
+	put	5	465
+	put	5	466
+	put	4	467
+	put	4	468
+	put	4	469
+	put	4	470
+	put	4	471
+	put	3	472
+	put	3	473
+	put	3	474
+	put	2	475
+	put	2	476
+	put	1	477
+	put	1	478
+	put	0	479
+	put	0	480
+	put	0	481
+	put	-1	482
+	put	-1	483
+	put	-2	484
+	put	-2	485
+	put	-3	486
+	put	-3	487
+	put	-3	488
+	put	-4	489
+	put	-4	490
+	put	-4	491
+	put	-4	492
+	put	-4	493
+	put	-5	494
+	put	-5	495
+	put	-5	496
+	put	-5	497
+	put	-5	498
+	put	-4	499
+	put	-4	500
+	put	-4	501
+	put	-4	502
+	put	-4	503
+	put	-3	504
+	put	-3	505
+	put	-3	506
+	put	-2	507
+	put	-2	508
+	put	-1	509
+	put	-1	510
+	put	0	511
+
+!search
+	cmp	skip	1	; compare skip with 1
+	jeq	!checked		; skip checks
+	opo	11	100	; remain full throttle
+	int	2		; get location
+	cmp	ex	300	; compare xpos and 300
+	jle	!left		; turn if close
+	cmp	fx	300	; compare ypos and 320
+	jle	!top		; turn if close
+	cmp	ex	700	; compare xpos and 400
+	jgr	!right		; turn if close
+	cmp	fx	700	; compare ypos and 380
+	jgr	!bottom		; turn if close
+	mov	have	@1	; get turret offset
+	sub	have	dir	; have = have - dir
+	neg	have		; have = - have
+	opo	14	have	; steering
+
+!checked
+	mov	skip	1	; skip = 1
+	opo	17	arc	; set scan arc
+	ipo	2	heat	; get heat
+	ipo	7	dist	; scan
+	cmp	dist	1500	; compare dist with 1500
+	jge	!notfound		; found no enemy
+	jls	!found		; found enemy
+!notfound
+	mov	skip	0	; skip = 0
+	cmp	arc	64	; compare arc with 64
+	jge	!swapdir		; no enemy in this half
+	shl	arc	2	; arc = arc * 4
+	jeq	!search		; continue serching
+	jne	!search		; continue serching
+!found	
+	cmp	arc	1	; compare arc with 1
+	jle	!gothim		; tracked enemy down
+	shr	arc	2	; arc = arc * 1/4
+	cmp	@3	1	; compare accuracy with 1
+	jgr	!farright		; enemy is far right
+	jeq	!nearright		; enemy is near right
+	cmp	@3	-1	; compare accuracy with -1
+	jls	!farleft		; enemy is far left
+	jeq	!nearleft		; enemy is near left
+!cont
+	cmp	dist	150	; compare dist with 150
+	jle	!checkclose		; check if close
+	cmp	arc	1	; compare arc with 4
+	jeq	!gothim		; tracked enemy down
+	jne	!getdir		; continue
+!farright
+	mov	rot	arc	; rot = arc
+	shl	rot	2	; rot = arc * 4
+	opo	12	rot	; rotate turret
+	jne	!cont		; continue
+!nearright
+	mov	rot	arc	; rot = arc
+	shl	rot	1	; rot = arc * 2
+	opo	12	rot	; rotate turret
+	jeq	!cont		; continue
+!farleft
+	mov	rot	arc	; rot = arc
+	shl	rot	2	; rot = arc * 4
+	neg	rot		; rotate other way round
+	opo	12	rot	; rotate turret
+	jne	!cont		; continue
+!nearleft
+	mov	rot	arc	; rot = arc
+	shl	rot	1	; rot = arc * 2
+	neg	rot		; rotate other way round
+	opo	12	rot	; rotate turret
+	jeq	!cont		; continue
+!swapdir
+	opo	12	128	; turn round turret
+	jeq	!search		; continue searching
+	jne	!search		; continue searching
+!checkclose
+	cmp	arc	16	; compare dist with 120
+	jgr	!getdir		; continue
+	mov	skip	0	; do not skip
+	jle	!closefire		; fire at close range
+!gothim
+	mov	skip	0	; do not skip
+	cmp	heat	150	; compare heat with 150
+	jgr	!getdir		; not fire if too hot
+	cmp	@7	0	; compare target speed with 0
+	jne	!aimfire		; fire with aim
+	jeq	!sitfire		; fire at sitting duck
+!aimfire
+	mov	rot	@6	; rot = angle of target
+	shr	rot	2	; rot = rot / 4
+	add	rot	448	; rot = rot + 448
+	opo	15	[rot]	; fire
+	opo	15	[rot]	; fire
+	opo	15	[rot]	; fire
+	jeq	!getdir		; track
+	jne	!getdir		; track
+!sitfire
+	opo	11	50	; 50% speed
+	opo	17	2	; scan arc 2
+	ipo	7	dist	; scan again
+	cmp	dist	1500	; compare dist with 1500
+	jge	!getdir		; skip if not found
+	opo	15	@3	; fire
+	opo	15	@3	; fire
+	opo	15	@3	; fire
+	opo	15	@3	; fire
+	opo	15	@3	; fire
+	opo	15	@3	; fire
+	jeq	!getdir		; track
+	jne	!getdir		; track
+!closefire
+	cmp	heat	150	; compare heat with 150
+	jgr	!getdir		; not fire if too hot
+	opo	15	-4	; fire
+	opo	15	-4	; fire
+	opo	15	-2	; fire
+	opo	15	2	; fire
+	opo	15	0	; fire
+	jeq	!getdir		; track
+	jne	!getdir		; track
+!getdir
+	ipo	5	dir	; get turret pos
+	mov	have	@1	; get current heading
+	mov	want	dir	; want = dir
+	sub	want	have	; calc angle
+	cmp	want	128	; compare want with 128
+	jgr	!isleft		; got him
+	cmp	want	-128	; compare want with -128
+	jls	!isright		; got him
+	cmp	want	0	; compare want with 0
+	jgr	!isright		; got him
+!isleft
+	add	dir	70	; dir = dir + 70
+	jeq	!search		; continue searching
+	jne	!search		; continue searching
+!isright
+	sub	dir	70	; dir = dir - 70
+	jeq	!search		; continue searching
+	jne	!search		; continue searching
+!left
+	cmp	fx	780	; compare ypos and 380
+	jgr	!bottom		; turn if close
+	mov	have	@1	; get current heading
+	mov	want	96	; drive to the right 
+	sub	want	have	; calc angle
+	opo	14	want	; drive
+	jeq	!checked		; ready
+	jne	!checked		; ready
+!right
+	mov	have	@1	; get current heading
+	mov	want	224	; drive to the left
+	sub	want	have	; calc angle
+	opo	14	want	; drive
+	jeq	!checked		; ready
+	jne	!checked		; ready
+!top
+	mov	have	@1	; get current heading
+	mov	want	160	; drive down 
+	sub	want	have	; calc angle
+	opo	14	want	; drive
+	jeq	!checked		; ready
+	jne	!checked		; ready
+!bottom
+	mov	have	@1	; get current heading
+	mov	want	32	; drive up 
+	sub	want	have	; calc angle
+	opo	14	want	; drive
+	jeq	!checked		; ready
+	jne	!checked		; ready

@@ -1,0 +1,60 @@
+;THEORY  by:  Jeremiah Martell  ~aka~  PsuedoChaos
+;this is a bot I made after another one of mine, LITES OUT.
+;It has different settings (CONFIG'd it differently)
+;and it also is totally re-written, but with the LITES OUT style
+;of fighting, although they are totally different bots.
+;this moves really slow (throttle 100,
+;but 'engine' config is 0 and 'armor' config 100) 
+;but I think I've improved on LITES OUTs style
+;some.  anyway, this is VER. 1.0
+;enjoy!  =)
+;
+; (distributable after competition)
+
+
+mov ax, 1
+int 3
+
+#CONFIG scanner=4
+#CONFIG weapon=3
+#CONFIG armor=4
+#CONFIG engine=0
+#CONFIG heatsinks=1
+#CONFIG mines=0
+#CONFIG shield=0
+
+out 17, 6
+
+!begin
+out 11, 100
+out 14, 6
+in 2, bx
+cmp bx, 200
+ja !begin
+in 7, ax
+cmp ax, 1500
+ja !nothing
+in 8, bx
+mov ax, bx
+add bx, bx
+add bx, bx
+out 12, bx
+cmp ax, 1
+jb !center
+out 15, 4
+jmp !begin
+
+!center
+cmp ax, -1
+ja !yepcenter
+out 15, -4
+jmp !begin
+
+!yepcenter
+out 15,-1
+out 15, 1
+jmp !begin
+
+!nothing
+out 12, 12
+jmp !begin

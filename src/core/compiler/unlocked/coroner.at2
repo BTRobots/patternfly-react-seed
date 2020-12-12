@@ -1,0 +1,185 @@
+; Name: Alex's Coroner
+; Version: 1.00
+; Author: T. Alexander Popiel (popiel@snugharbor.com)
+; Date: 31 Mar 1997
+; Strategy: Wander back and forth near the lower right corner,
+;           taking potshots at people.
+;
+; Copyright 1997 by T. Alexander Popiel, all rights reserved.
+; License is granted for free duplication, distribution, and
+; performance (execution).  (In other words, feel free to play
+; with it and show it to your friends.)
+
+#msg Alex's Coroner
+
+#def width
+#def tx
+#def ty
+
+
+        out     P_THROTTLE      100
+        out     P_STEERING      120
+        set     ax              1
+        int     I_KEEPSHIFT             ; maintain turret facing
+        set     width           64      ; open arc
+
+        put     0               448     ; initialize leader table
+        put     0               449
+        put     0               450
+        put     1               451
+        put     1               452
+        put     2               453
+        put     2               454
+        put     3               455
+        put     3               456
+        put     3               457
+        put     4               458
+        put     4               459
+        put     4               460
+        put     4               461
+        put     5               462
+        put     5               463
+        put     5               464
+        put     5               465
+        put     5               466
+        put     4               467
+        put     4               468
+        put     4               469
+        put     4               470
+        put     3               471
+        put     3               472
+        put     3               473
+        put     2               474
+        put     2               475
+        put     1               476
+        put     1               477
+        put     0               478
+        put     0               479
+        put     0               480
+        put     -0              481
+        put     -0              482
+        put     -1              483
+        put     -1              484
+        put     -2              485
+        put     -2              486
+        put     -3              487
+        put     -3              488
+        put     -3              489
+        put     -4              490
+        put     -4              491
+        put     -4              492
+        put     -4              493
+        put     -5              494
+        put     -5              495
+        put     -5              496
+        put     -5              497
+        put     -5              498
+        put     -4              499
+        put     -4              500
+        put     -4              501
+        put     -4              502
+        put     -3              503
+        put     -3              504
+        put     -3              505
+        put     -2              506
+        put     -2              507
+        put     -1              508
+        put     -1              509
+        put     -0              510
+        put     -0              511
+
+        set     tx              800
+        set     ty              700
+
+!main_loop
+        int     I_LOCATE
+        sub     ex              tx
+        sub     fx              ty
+        cmp     ex              0
+        ja      !x_pos
+        neg     ex
+!x_pos
+        cmp     fx              0
+        ja      !y_pos
+        sub     ex              fx
+        jmp     !check_dist
+!y_pos
+        add     ex              fx
+!check_dist
+        cmp     ex              50
+        ja      !no_swap
+        swap    tx              ty
+!no_swap
+        set     ex              tx
+        set     fx              ty
+        int     I_ANGLE
+        sub     ax              @1
+        out     P_STEERING      ax
+        call    !hunt_fire
+        call    !hunt_fire
+        jmp     !main_loop
+
+!hunt_fire
+        in      P_HEAT          ax
+        out     P_THROTTLE      100
+        cmp     ax              200
+        jb      !seek_fire
+        ret
+
+!see_none
+        out     P_TROTATE       96      ; spin turret
+        set     width           64      ; open arc
+!seek_fire
+!do_scan
+        out     P_ARC           width   ; set arc
+        in      P_SCAN          ax      ; scan
+        cmp     ax              5000    ; nobody there?
+        ja      !see_none
+        cmp     @3              1       ; determine quadrant
+        ja      !acc_2
+        je      !acc_1
+        cmp     @3              -1
+        jb      !acc_12
+        je      !acc_11
+        shr     width           2       ; narrow search
+        jmp     !check_fire
+!acc_1
+        shr     width           1
+        out     P_TROTATE       width
+        shr     width           1
+        jmp     !check_fire
+!acc_2
+        out     P_TROTATE       width
+        shr     width           2
+        jmp     !check_fire
+!acc_11
+        shr     width           1
+        neg     width
+        out     P_TROTATE       width
+        neg     width
+        shr     width           1
+        jmp     !check_fire
+!acc_12
+        neg     width
+        out     P_TROTATE       width
+        neg     width
+        shr     width           2
+!check_fire
+        cmp     width           1
+        ja      !seek_fire
+        cmp     @7              0
+        jne     !lead_fire
+        out     P_FIRE
+        out     P_FIRE
+        set     width           4
+        ret
+!lead_fire
+        set     ax              @6      ; compute leading
+        and     ax              255
+        shr     ax              2
+        add     ax              448
+        get     ax              ax
+        out     P_FIRE          ax
+        out     P_FIRE          ax
+        set     width           4
+        ret

@@ -1,0 +1,99 @@
+; First blood part 1,
+; Copyright: Christoffer Andersson, Norway.
+; This robot is MY OWN!!
+; If anyone really feel this robot is going to help them, then go ahead and
+; read it.  It really is too simple to be an awesome help.
+; Why such a stupid robot? because this was supposed to be an experimental
+; first robot.  (Just in case anyone wondered.)
+; made in Febuary on atrobs 2.b and modified for later versions along the
+; way.  (presently 2k.)
+; This is my first robot in atr2 and the second of all robots.
+; This should show how easy you can get into the atra.
+; The robot is fairly simple, yet very destructive against slow targets.
+; it struggles somewhat more against fast targets, but usually gets them too.
+; There is no fancy stuff or any tricky/clever programming.
+; it is very straightforward and simple.
+;  a little comparing (cmp)... That's all folks!!!
+;My strategy from the start was to keep it simple and keep it going
+; 
+; The tactics is it moves all the time, even if chrashing in the walls at
+; any time.  Keepshift is on and the robot scans opposite way of turning.
+; if heat gets too high, it takes a couple of rounds to cool off.
+; I guess you could call him a mini version of randman.
+
+
+
+#def speed
+#def target
+#def heat
+#def get
+#def maxspeed
+
+        opo p_scanarc, 4        ;get the right scanarc
+        mov ax, 1               ;ax=1
+        int i_keepshift         ;turn keepshift on (ax=1)
+        opo p_throttle, 100     ;full speed ahead!
+        mov maxspeed, 100       ;maxspeed = 100
+:1                              ;this is the core (main loop)
+        
+        opo p_steering, 4   ;Turn to the right
+        opo p_trotate, -8   ;while turning, turn the turret in opposite dir
+        ipo p_scan, target  ;scan for robots, store result in target
+        cmp target, 1500    ;compare target with range
+        jb 2                ;if in range then fire
+        ipo p_spedometer, speed    ;get speed and store in speed
+        cmp speed 0                ;if stopped then do something
+        je 4
+        jmp 1                      ;do the loop
+
+:2
+        ipo p_heat, heat          ;before firing get heat
+        cmp heat, 200
+        ja 3                      ;if too hot - cool down
+        ipo p_accuracy,  get      ;if not get accuracy and.. fire at will
+        cmp get, 0
+        ja 21
+        jb 22
+        opo 15
+        jmp 20
+:21
+        opo 15, 4          ;fire according to accuracy
+        opo p_trotate, 2   ;turn according to accuracy
+        jmp 20             
+:22
+        opo 15, -4
+        opo p_trotate, -2
+        jmp 20
+        
+:20
+        
+        ipo P_spedometer speed     ;check speed
+        cmp speed 0
+        je 51                      ;if stopped do something
+:23        
+
+        opo p_steering 6           ;keep turning and scanning
+        ipo p_scan, target
+        cmp target, 1500
+        jb 2                       ;if still target then fire
+        jmp 1                      ;if lost him then go to main loop
+
+:3                                  ;this is the cool off loop
+        opo p_steering -4           ; turn to the left
+        ipo p_spedometer, speed     ;check speed
+        cmp speed 0                 ;if stopped ... you know what
+        je 4
+        ipo p_heat, heat           ;get heat
+        cmp heat 50
+        ja 3
+        jmp 1
+        
+:4
+        neg maxspeed                   ;this command (neg) made this loop
+        opo p_throttle, maxspeed       ;a lot easier
+        jmp 1                          ;if stopped then full reverse
+:51
+        neg maxspeed                  ;same thing, only it doesn't go 
+        opo p_throttle, maxspeed      ;to the main loop, because we are
+        jmp 23                        ;having a target and we want to fire
+                                      ;as fast as possible

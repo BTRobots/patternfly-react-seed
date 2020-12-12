@@ -2090,7 +2090,7 @@
 	"Effects/Sprites/Sprite_Fire_Shots_Impact_B": ["Effects/Sprites/Sprite_Fire_Shots_Impact_B_000.png","Effects/Sprites/Sprite_Fire_Shots_Impact_B_001.png","Effects/Sprites/Sprite_Fire_Shots_Impact_B_002.png","Effects/Sprites/Sprite_Fire_Shots_Impact_B_003.png"],
 	"Effects/Sprites/Sprite_Fire_Shots_Shot_A": ["Effects/Sprites/Sprite_Fire_Shots_Shot_A_000.png","Effects/Sprites/Sprite_Fire_Shots_Shot_A_001.png","Effects/Sprites/Sprite_Fire_Shots_Shot_A_002.png","Effects/Sprites/Sprite_Fire_Shots_Shot_A_003.png"],
 	"Effects/Sprites/Sprite_Fire_Shots_Shot_B": ["Effects/Sprites/Sprite_Fire_Shots_Shot_B_000.png","Effects/Sprites/Sprite_Fire_Shots_Shot_B_001.png","Effects/Sprites/Sprite_Fire_Shots_Shot_B_002.png","Effects/Sprites/Sprite_Fire_Shots_Shot_B_003.png"],
-	"Effects/Tire_Track": ["Effects/Tire_Track_01.png","Effects/Tire_Track_02.png"],
+	"Effects/Tire_Track": ["Effects/Tire_Track_01.png","Effects/Tire_Track_02.png"]
 },
 "meta": {
 	"app": "https://www.codeandweb.com/texturepacker",

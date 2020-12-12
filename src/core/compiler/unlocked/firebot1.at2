@@ -1,0 +1,158 @@
+; Firebot V1.0
+; Author: Calash
+; Compiled 1/20/99
+; Robot source code may be freely distibuted
+; Stratagy:
+; scans starting with 180 degree arc narrowing down on a opponent.
+; once it target it's enemy it will fire depending on the distance from the target.
+; It also cycles the shields with set values to keep heat down but protected as much as possable
+; Built with ATRCK V1.1
+; Note:  There are still some bugs, but i dont have time to work them out
+
+
+
+#config scanner= 4
+#config weapon= 1
+#config armor= 0
+#config engine= 1
+#config heatsinks= 3
+#config mines= 0
+#config shield= 3
+#msg I can see you!
+#def  turn
+#def	arc
+#def	heatmax
+#def	heatmin
+#def	speed
+
+set	heatmax,	120
+set	heatmin,	50
+set  	turn,	20
+set	arc,	10
+set	speed,	100
+:1
+out	14,	turn
+out	17,	arc
+out	11,	speed
+
+:2
+in	7,	bx
+cmp	bx,	1000
+jle	100
+add	turn,	1
+cmp	arc, 	180
+jge	3
+shl	arc,	1
+
+:3
+in	2	bx
+cmp	bx,	heatmax
+jls	4
+out	24,	0
+
+:4
+cmp	bx,	heatmin
+jgr	5
+out	24,	1
+
+:5
+out	11,	100
+shl	turn, 	2
+add	turn,	turn
+in	1,	ax
+cmp	ax,	7
+jls	50
+in	7,	bx
+cmp	bx,	1000
+jle	100
+
+jeq	1
+jne	1
+
+:50
+in	7,	bx
+cmp	bx,	1000
+jle	100
+set	turn,	1
+set	speed,	-100
+out	11,	speed
+out 	24,	1
+jeq	1
+jne	1		
+
+:100
+set	speed,	100
+out	11,	speed
+cmp	arc	3
+jls	200
+get	turn,	3
+add	turn	turn
+shr	arc,	1
+in	7,	bx
+jeq	100
+jne	1
+
+:200
+in	2,	bx
+cmp	bx,	190
+jgr	205
+in	7,	bx
+cmp	bx,	150
+jls	250
+opo	15
+opo	15
+cmp	bx,	300
+jgr	201
+out	24,	1
+set	ax	1
+int	4
+out	15,	-1
+out	15,	1
+out	15,	0
+
+:201
+cmp	bx,	600
+jgr	202
+out	15
+out	15
+out	15
+
+:202
+in	2	bx
+cmp	bx,	190
+jls	204
+out	24,	0
+:204
+cmp	bx,	heatmin
+jgr	205
+out	24,	1
+:205
+
+jeq	1
+jne	1
+
+:250
+out	24,	1
+out	11,	-100
+out	15
+out	15
+out	15
+in	2	bx
+cmp	bx,	190
+jls	254
+out	24,	0
+:254
+cmp	bx,	heatmin
+jgr	255
+out	24,	1
+:255
+jeq	200
+jne	200
+
+
+
+
+
+
+
+

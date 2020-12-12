@@ -3,7 +3,7 @@ import { Route, RouteComponentProps, Switch } from 'react-router-dom';
 import { Alert, PageSection } from '@patternfly/react-core';
 import { DynamicImport } from '@app/DynamicImport';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
-import { Dashboard } from '@app/Dashboard/Dashboard';
+import { Battle } from '@app/Battle/Battle';
 import { Editor } from '@app/Editor/Editor';
 import { NotFound } from '@app/NotFound/NotFound';
 import { Login } from '@app/Login/Login.tsx'
@@ -52,11 +52,11 @@ export interface IAppRoute {
 
 const routes: IAppRoute[] = [
   {
-    component: Dashboard,
+    component: Battle,
     exact: true,
-    label: 'Dash',
+    label: 'Battle',
     path: '/',
-    title: 'Main Dashboard Title'
+    title: 'BTRobots Battle'
   },
   {
     component: Editor,
@@ -64,14 +64,6 @@ const routes: IAppRoute[] = [
     label: 'Editor',
     path: '/Editor',
     title: 'BTRobots Editor'
-  },
-  {
-    component: Support,
-    exact: true,
-    isAsync: true,
-    label: 'Support',
-    path: '/support',
-    title: 'Support Page Title'
   },
 ];
 

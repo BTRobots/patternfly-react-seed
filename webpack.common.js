@@ -89,10 +89,6 @@ module.exports = {
         }
       },
       {
-        test: /\.json$/,
-        loader: 'json'
-      },
-      {
         test: /\.(jpg|jpeg|png|gif)$/i,
         include: [
           path.resolve(__dirname, 'src'),

@@ -134,11 +134,9 @@ export const deleteRobot = ({
   localStorage.removeItem(`${user}_${uuid}`);
 
   // remove from local storage list
-  const robotList = getRobotList({ username: user}).filter(robot => robot.uuid !== uuid);
-  saveRobotList({
-    robotList,
-    username: user,
-  });
+  const robotMap = getRobotMap({ username: user });
+  delete robotMap[uuid];
+  saveRobotMap({ username: user, robotMap });
 }
 
 export const useLocalRobotStorage = (username: string) => {

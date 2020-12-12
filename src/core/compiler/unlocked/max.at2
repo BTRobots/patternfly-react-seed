@@ -1,0 +1,66 @@
+; Max Destructor
+; The Robot of Tomorrow
+; He's not nearly as cool as I had hoped, but he's still an interesting
+; and wily opponent sutible for taking out the low level competition.
+; Programmer David Mears
+; This robot may be freely distributed.
+
+
+#def acc
+#def turnok
+#def hltlvl
+#def rng
+
+     opo        17,3                     ; Scan arc to 3
+     int        3                        ; turrent independant of tank
+:666
+     ipo        6, ax                    ; how bad is it, sarge?
+     cmp        ax, 25                   ; pretty bad, solder..
+     ja         7                        ; you might live, though.
+     int        4                        ; with this new heart...
+:7
+     ipo        7, rng                   ; is there anyone out there?
+     cmp        rng, 1500                ; rng less than 1500?
+     ja         13                       ; skip fire control
+     ipo        2, ax                    ; check heat
+     cmp        ax, 230                  ; more than 200?
+     ja         14                       ; jump to 10
+     gosub      15                       ; gosub 15
+     jmp        666
+:13
+     opo        11,0
+     opo        12,5                     ; turn turrent 5 degrees
+     jmp        666                       ; loop boy!
+:14
+     ipo        8,acc                    ; check accuracy
+     add        acc, acc                 ; double accuracy reading
+     opo        12,acc                   ; turn turrent 5 degrees
+     ipo        16,ax                    ; is someone within 350 units?
+     cmp        ax,0
+     jls        20
+     mov        bx,@1
+     sub        ax,bx
+     add        ax,128
+     opo        14,ax
+     opo        11,100
+:20
+     jmp        666
+:15
+     mov        turnok,1
+     ipo        8,acc                    ; check accuracy
+     add        acc, acc                 ; double accuracy reading
+     opo        15,acc                   ; fire
+     opo        15,acc                   ; fire
+     opo        15,acc                   ; fire
+     opo        12,acc                   ; aim turrent
+     cmp        rng,350                  ; check range
+     jb         20
+     ipo        4,ax
+     opo       14,ax
+     opo       11,100
+     jmp        25
+:20
+     opo        11,0
+:25
+     return
+#END

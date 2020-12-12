@@ -1,0 +1,227 @@
+;----------------------------------------------------|
+;This is helpfire. Since you can have 3 robots in the|
+;tournament i thought the others could help my best  |
+;robot. So if this one receives the "secret" code    |
+;through the transponder channel he becomes a sitting|
+;duck. Else he fights on, thus giving my best robot  |
+;100% pts, but hopefully taking some by his opponents|
+;----------------------------------------------------|
+;Tactics: sick-sack wall to wall, aim and fire
+;
+;By Andreas Agorander aka Bluefire
+;Begun on december 21 1998
+;E-mail: Bluefire@antisocial.com
+;ICQ:    601742
+;
+;This robot can be freely distributed and copied after January 22 1999
+;(the due date for submissions for the 2:nd tournament)
+;
+;v 0.9
+
+
+#msg I'll help my buddy
+
+#def	sduck
+#def	fighton
+#def	findtarget
+#def	killhim
+#def	navigate
+#def	TARGET_FOUND
+#def	AMOUNTTURN
+
+mov	fighton,		100
+mov	sduck,			1000
+mov	findtarget,		300
+mov	navigate,		200
+mov	killhim,		400
+
+out	P_channel,		6670		;set to the right com channel
+nop						;Give him time to send the secret code
+nop
+nop
+nop
+nop
+nop
+
+int	i_dataready
+cmp	fx,			0		;received anything?
+je	fighton					;Nope, normal fighting mode
+
+int	i_receive				; something in, receive it.
+cmp	fx,			6215		;Is it the correct code?
+je	sduck					;Yep, wait to be killed
+
+;Normal mode code starts here
+:100
+
+;initialisations
+
+MOV	AX,			1
+INT	I_KEEPSHIFT
+
+:110
+CALL	FINDTARGET
+:120
+CALL	NAVIGATE
+
+CMP	TARGET_FOUND,		0
+JE	110
+ERR	45
+CALL	KILLHIM
+JMP	120
+
+;NAVIGATE---------------------------------------
+;***********************************************
+:200
+
+IN	1,			AX
+CMP	AX,0
+JA	270
+OUT	14,			128
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+:260
+OUT	P_THROTTLE,		100
+IN	1,			AX
+CMP	AX,			10
+JB	260
+ret
+:270
+OUT	P_STEERING,		AMOUNTTURN
+CMP	AMOUNTTURN,		0
+JB	210
+MOV	AMOUNTTURN,		-60
+JMP	250
+:210
+MOV	AMOUNTTURN,		60
+:250
+
+ret
+
+;FINDTARGET-------------------------------------
+;***********************************************
+:300
+
+OUT	17,			64
+OUT	13,			0
+IN	7,			AX
+CMP	AX,			2000
+JB	301
+OUT	12,			128
+IN	7,			AX
+CMP	AX,			2000
+JA	305
+
+
+:301
+IN	8,			BX
+SHL	BX,			5
+OUT	12,			BX
+OUT	17,			16
+IN	7,			AX
+CMP	AX,			2000
+JA	305
+
+IN	8,			BX
+SHL	BX,			3
+OUT	12,			BX
+OUT	17,			8
+IN	7,			AX
+CMP	AX,			2000
+JA	305
+
+IN	8,			BX
+SHL	BX,			2
+OUT	12,			BX
+MOV	TARGET_FOUND,		1
+RET
+
+:305
+
+MOV	TARGET_FOUND,		0
+RET
+;****************************************
+;----------------------------------------
+
+;KILLHIM---------------------------------
+;****************************************
+:400
+
+OUT	17,			4
+IN	7,			AX
+CMP	AX,			2000
+JA	410
+IN	8,			BX
+ADD	BX,			BX
+OUT	12,			BX
+:405
+OUT	17,			2
+IN	7,			AX
+CMP	AX,			2000
+JA	420
+IN	8,			BX
+OUT	12,			BX
+IN	2,			AX
+CMP	AX,			10
+JA	452
+
+OUT	P_FIRE,			-4
+OUT	P_FIRE,			0
+OUT	P_FIRE,			4
+OUT	12,			BX
+:452
+RET
+
+:410
+
+OUT	17,			8
+IN	7,			AX
+CMP	AX,			2000
+JB	411
+MOV	TARGET_FOUND,		0
+RET
+:411
+IN	8,			BX
+SHL	BX,			2
+OUT	12,			BX
+IN	2,			AX
+CMP	AX,			10
+JA	454
+
+OUT	P_FIRE,
+OUT	P_FIRE,			4
+OUT	P_FIRE,			-4
+:454
+RET
+
+:420
+OUT	17,			4
+IN	7,			AX
+CMP	AX,			2000
+JA	410
+IN	8,			BX
+ADD	BX,			BX
+OUT	12,			BX
+IN	2,			AX
+CMP	AX,			10
+JA	454
+
+OUT	P_FIRE,
+OUT	P_FIRE,			4
+OUT	P_FIRE,			-4
+RET
+;***************************************
+;---------------------------------------
+
+;sduck
+:1000
+
+jmp	1000

@@ -1,11 +1,13 @@
 import React, {useState, useEffect} from 'react';
 import { PageSection, Title, Bullseye, Gallery, GalleryItem, Grid, GridItem, Flex, FlexItem, Button, TextInput } from '@patternfly/react-core';
 import { NewRobotCard } from './NewRobotCard';
-import { getRobotList, saveRobot,  } from '@app/storage';
+import { deleteRobot, getRobotList, saveRobot,  } from '@app/storage';
 import { ControlledEditor } from '@monaco-editor/react';
 import { RobotCard }from './RobotCard';
 import { v4 as uuidV4 } from 'uuid';
 import { TestWindow } from './TestWindow';
+import { compile } from '../../core';
+import { Game } from '@app/Game/Game';
 
 export interface RobotObject extends NewRobotObject {
   uuid: string,
@@ -18,11 +20,11 @@ export interface NewRobotObject {
 
 
 const Editor: React.FunctionComponent<{}> = () => {
-  const robots = getRobotList();
   const [currentRobot, setCurrentRobot] = useState<RobotObject>();
   const [isRunning, setIsRunning] = useState(false);
   const [codeError, setCodeError] = useState('');
-
+  const [robots, setRobots] = useState(getRobotList());
+  
   // we'll use user names after any auth is added
   const username = '';
 
@@ -42,6 +44,8 @@ const Editor: React.FunctionComponent<{}> = () => {
   }, [currentRobot]);
 
 
+
+
   const newRobotFile = ({robotName, file }: NewRobotObject) => {
     const newRobotObject: RobotObject = {
       robotName,
@@ -53,6 +57,14 @@ const Editor: React.FunctionComponent<{}> = () => {
       ...newRobotObject,
     });
     setCurrentRobot(newRobotObject);
+  }
+
+  const handleDeleteRobot = ({uuid, username}: {uuid: string, username: string}) => {
+    deleteRobot({
+      username,
+      uuid,
+    });
+    setRobots(getRobotList());
   }
 
   const handleSetRobot = (robotObject:RobotObject) => {
@@ -68,10 +80,12 @@ const Editor: React.FunctionComponent<{}> = () => {
       <div>
         <Grid>
           <GridItem span={6}>
-            <TestWindow
-              height="800px"
-              programFile={currentRobot.file}
-            />
+          <Game
+            isRunning={isRunning}
+            height={800}
+            width={800}
+            robotsPrograms={[currentRobot.file]}
+          />
           </GridItem>
           <GridItem span={6}>
 
@@ -99,6 +113,9 @@ const Editor: React.FunctionComponent<{}> = () => {
                 ...currentRobot,
                 file: file || '',
               })}
+              options={{
+                readOnly: isRunning,
+              }}
               value={currentRobot.file}
             />
           </GridItem>
@@ -119,6 +136,7 @@ const Editor: React.FunctionComponent<{}> = () => {
           uuid={robot.uuid}
           username={username}
           loadRobotFile={setCurrentRobot}
+          deleteRobot={handleDeleteRobot}
         />
       </GalleryItem>))}</Gallery>
     )

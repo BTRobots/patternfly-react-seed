@@ -1,0 +1,256 @@
+;Assassin V1.0
+;Completed March 8th 1999
+;Made by David Labbe
+;E-mail: rodney999@hotmail.com
+
+;This robot is designed to track nearby ennemy and follow them in
+;their back(usually).  He check at 0, 90, 180 and 270 degrees
+;for ennemies to kill, then he turn to face them.  Once he get close to
+;a robot, he don't lose him and follow him in his back.  An assassin!
+
+;Good for: Center fight, moving in circle targets
+;Not good for: Sides(He really suck in the top left corner)
+;		non-moving targets, 6 robots fights
+
+;You may take any parts of this robot, but just don't copy it please and
+;change 1-2 values.  Thanks.
+
+
+#config scanner= 4
+#config weapon= 3
+#config armor= 2
+#config engine= 2
+#config heatsinks= 1
+#config mines= 0
+#config shield= 0
+#def qqun
+#def ener
+#def ener_av
+#def touche
+
+#msg Die Low-Life!!!
+
+opo 17 8
+opo 13 0
+mov qqun 0
+ipo 6 ener_av
+;opo 18 1
+
+:10
+;Check for damage
+	gsb 4000
+	cmp touche 0		;Are you hit?
+	je 11			;No, go man!
+	opo 14 32		;Emergency turn!!!
+	opo 11 100
+	jmp 2
+	
+:11
+;Check for stop
+	ipo 1 ax		;Stopped?
+	cmp ax 0
+	jgr 1			;Nope, move on
+	opo 14 64		;Turn 90 degrees
+	opo 11 100		;Speed 100
+	ipo 6 ener_av		;Change energy value so we are not hit
+	jmp 10
+
+:1
+;Check with sonar
+	mov qqun 0
+	opo 11 100
+	ipo 16 ax		;Check with sonar
+	cmp ax 0		;Someone?
+	jls 2			;No..
+	mov qqun 1
+	gsb 2000		;TURN!
+
+:2
+;Check with radar in front
+	opo 13 0		;Set the turret in front
+	ipo 7 ax
+	cmp ax 1000		;Someone to shoot??
+	jgr 5			;Nope
+	ipo 8 dx		;Yeah Yeah!!!
+	del 6			;Get 2 accuracy so we can aim better
+	ipo 8 cx		;At least we hope
+	sub dx cx		;Sub it...
+	sub cx dx		;Again....
+	gsb 1000		;OK Kill him now!
+	jmp 8
+
+:5
+;Check in back
+	opo 13 128		;Set turret in back
+	ipo 7 ax
+	cmp ax 1000		;Someone to shoot??
+	jgr 6			;Nope
+	ipo 8 dx		;Yeah Yeah!!!
+	del 6			;Get 2 accuracy so we can aim better
+	ipo 8 cx		;At least we hope
+	sub dx cx		;Sub it...
+	sub cx dx		;Again....
+	gsb 1000		;OK Kill him now!
+	opo 14 128		;Turn to face him
+	opo 11 100		;Full speed!
+	jmp 8
+
+:6
+;Check right
+	opo 13 64		;Set turret right
+	ipo 7 ax
+	cmp ax 1000		;Someone to shoot??
+	jgr 7			;Nope
+	ipo 8 dx		;Yeah Yeah!!!
+	del 6			;Get 2 accuracy so we can aim better
+	ipo 8 cx		;At least we hope
+	sub dx cx		;Sub it...
+	sub cx dx		;Again....
+	gsb 1000		;OK Kill him now!
+	opo 14 64		;Turn to face him
+	opo 11 100		;Full speed!
+	jmp 8
+
+:7
+;Check left
+	opo 13 192		;Set turret left
+	ipo 7 ax
+	cmp ax 1000		;Someone to shoot??
+	jgr 3			;Nope
+	ipo 8 dx		;Yeah Yeah!!!
+	del 6			;Get 2 accuracy so we can aim better
+	ipo 8 cx		;At least we hope
+	sub dx cx		;Sub it...
+	sub cx dx		;Again....
+	gsb 1000		;OK Kill him now!
+	opo 14 -88		;Turn to face him
+	opo 11 100		;Full speed!
+	jmp 8
+
+
+:8
+;Check heat after shooting
+	ipo 2 ax
+	cmp ax 200		;Too hot buddy?
+	jls 10			;Alright, start over
+	gsb 3000		;Ice time!
+	jmp 10
+
+:3
+;Check heat without shooting
+	ipo 2 ax
+	cmp ax 200		;Too hot dude?
+	jls 4			;Ok no problem
+	gsb 3000		;Cool down!
+	jmp 10
+
+:4
+;Check if need to turn
+	cmp qqun 0
+	jne 10			;Someone tracked(sonar) don't turn
+	opo 14 12		;Ok turn
+	jmp 10
+
+:1000
+;Fire 3 shot moving turret to kill more mwahaha
+;	mpy cx 2
+	opo 12 cx		;Turn turret
+	opo 15 cx		;SHOOT!!
+
+	opo 12 cx		;Turn turret
+	opo 15 cx		;ZAP!!
+
+	opo 12 cx		;Turn turret
+	opo 15 cx		;BOOM!!
+	ret
+
+
+:2000
+;Turn in direction of target
+	mov cx ax	
+	mov bx @1
+	sub ax bx
+	opo 14 ax
+	
+:2001
+;Wait until you face him
+	mov bx @1
+	cmp cx bx
+	jne 2001
+	ret
+
+:3000
+;Too hot man, cool down procedure
+	opo 18 0		;Ok cool down man	
+
+:3003
+;Check heat
+	opo 11 100	
+	ipo 2 ax
+	cmp ax 200		;Still too hot?
+	jgr 3001
+;	opo 18 1
+	ret			;Ok let's fight!
+
+:3001
+;Check sonar(stay behind him)
+	ipo 16 ax		;Check with sonar
+	cmp ax 0		;Someone?
+	jls 3002		;No
+	gsb 2000		;Turn to face him
+	jmp 3003
+
+:3002
+;Tourne if no ennemy in sight
+;	opo 14 12		;Turn it'll coll you down
+	ipo 1 bx		;Stopped?
+	cmp bx 0		;Nope
+	jne 3004
+	opo 14 32		;Turn!!
+	del 3
+	opo 11 100		;Set speed to 100
+	ipo 6 ener_av		;We are not shot
+	jmp 3003
+
+:3004
+;Check if hit
+	gsb 4000		;Are we hit?
+	cmp touche 1
+	jne 3003		;Nope
+	opo 14 64		;TURN!!
+
+:4000
+;Check for damage procedure
+	mov touche 0
+	ipo 6 ener		;Get energy
+	cmp ener ener_av	;Are we hit?
+	je 4001		;Nope
+	mov ener_av ener	;Yup
+	mov touche 1
+
+:4001
+	ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

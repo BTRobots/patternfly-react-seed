@@ -1,0 +1,145 @@
+; ---------------------------------------------------------------------------------
+; * MJ6                                                                           *
+; *                                                                               *
+; * E-mail: zorkian@intellisys.net                                                *
+; *                                                                               *
+; * Circles around, firing at the enemy.  Pretty good bot.                        *
+; ---------------------------------------------------------------------------------
+
+#def found
+#def lfound
+#def throttle
+#def degrees
+
+; ---------------------------------------------------------------------------------
+
+; Init
+mov lfound, 0
+mov found, 0
+mov throttle, 100		; Full throttle
+mov degrees, 2			; 2 degrees turn per cycle
+
+mov ax, 1
+int 3                           ; Set keepshift
+
+out 17, 4
+out 11, throttle
+
+; ---------------------------------------------------------------------------------
+
+!start
+   call !attack
+   call !move
+
+!heatloop
+   in 2, ax
+   cmp ax, 250
+   jls !start
+
+   call !move
+   jmp !heatloop
+
+; ---------------------------------------------------------------------------------
+; This code is very SLIGHTLY buggy...haven't figured out how to fix the bug without
+; lots of extra code...oh well.
+!attack
+   mov bx, 0			; Not short scanning
+
+   ; If we've found somebody, scan & aim
+   cmp found, 1			; Did we?
+   jls !scan			; Guess not, better scan
+
+!doattack
+   out 17, 2			; Adjust scan-arc width
+   
+   in 7, ax 			; Scan
+   cmp ax, 1500			; Someone out there?
+   ja !noway			; We're done
+
+   in 8, ax			; Get accuracy
+   out 15, ax			; Fire!!!
+   out 15, ax			; Fire!!!
+   shl ax, 1
+   out 15, ax                   ; Fire a leading shot (hopefully)
+
+   jmp !doneattack		; We're done
+!scan   
+   cmp lfound, 1		; Did we just have somebody?
+   je !wedid
+
+   ; Setup
+   out 17, 64			; Scan width to max
+   in 7, ax			; Someone this way?
+   cmp ax, 1500			; ?
+   jls !killem			; Guess so!
+   out 12, 128			; Guess not, turn around
+
+!killem
+   ; Someone this way...aim at them and zero in
+   in 7, ax			; Distance to nearest target
+   in 8, ax			; Accuracy of last scan...
+   shl ax, 5			; ax = ax * 32
+   out 12, ax			; Move turret
+   out 17, 32			; Resize turret
+
+   in 7, ax                     ; Distance to nearest target
+   in 8, ax                     ; Accuracy of last scan...
+   shl ax, 4                    ; ax = ax * 16
+   out 12, ax                   ; Move turret
+   out 17, 16                   ; Resize turret
+
+   in 7, ax			; Distance to nearest target
+   in 8, ax			; Accuracy of last scan...
+   shl ax, 3			; ax = ax * 8
+   out 12, ax			; Move turret
+   out 17, 8			; Resize turret
+
+!shortscan
+   in 7, ax                     ; Distance to nearest target
+   in 8, ax                     ; Accuracy of last scan...
+   shl ax, 2                    ; ax = ax * 4
+   out 12, ax                   ; Move turret
+   out 17, 4                    ; Resize turret
+
+   in 7, ax			; Distance to nearest target
+   in 8, ax			; Accuracy of last scan...
+   shl ax, 1			; ax = ax * 2
+   out 12, ax			; Move turret
+   out 17, 2			; Resize scan-arc
+
+   cmp bx, 1			; Short scanning or not?
+   je !doattack			; Jump up there
+
+   mov lfound, found		; Last found = found
+   mov found, 0			; Default to say we didn't find anybody
+   in 7, ax			; Now find out if we did
+   cmp ax, 1500			; ?
+   ja !doneattack		; We didn't :(
+   mov found, 1			; We did!
+   jmp !doneattack		; We're done now
+
+!wedid
+   out 17, 8			; Wider scan-arc
+   mov bx, 1			; We're short-scanning
+   jmp !shortscan		; We just lost them, so zero in real fast
+
+!noway
+   mov lfound, found		; Last found = found
+   mov found, 0			; Didn't find 'em
+
+!doneattack
+ret
+
+; ---------------------------------------------------------------------------------
+; A very simple routine really
+!move
+   int 12			; Get collision count
+   cmp fx, 1			; ?
+   jls !donemove		; Didn't hit anything
+
+   int 13			; We did, reset collision count
+   neg throttle			; Reverse throttle
+   out 11, throttle		; Set throttle
+!donemove
+   out 14, degrees		; Turn
+ret

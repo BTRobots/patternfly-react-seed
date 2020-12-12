@@ -1,0 +1,636 @@
+;     ||   || | | /--------\ |^^^| |-\    /-|  /^_^\ \___   ___/ | _____/
+;     ||   || | | \__    __/  | |  |  \  /  | | |_| |    | |     | |___
+;     \ \_/ | | |___ |  |     | |  | |\\//| | | ___ |    | |     | |___|
+;      \___/  |____/ |__|    |___| |_| \/ |_| |/   \|    |_|     | |_____
+;          _                ________  ______   ____   ___    ____|______/
+;  |^^^\\ | ||    |||  ||| | _____// |  ___|| |   || | ^ \\ | _____//
+;  || _// | ||    |||  ||| | ||___   | ||___   | ||  | -__||| ||___
+;  ||  \\ | ||___ | \\/ || | |___||  |  ___||  | ||  | \\   | |___||
+;  |___// |____//  \___//  | ||_____ | ||      | ||  ||\\\  | ||____
+;                          |______// |_||     |___|| || \\\ |______//
+; AT ROBOT
+; 
+; Ultimate Bluefire V 0.91!(beta)
+; Development started July 2:nd 1998
+; Last edit Dec 24:th 1998
+;
+; AUTHOR: Andreas Agorander, Sweden
+;         e-mail: Bluefire@antisocial.com
+;	  ICQ: 601742
+;
+; This robot may be freely distributed and copied after January 22 1999
+; (the due date for submissions to the 2:nd tournament)
+;
+; Tactics: If the enemy moves slow, are heading right at us ur from us try to kill
+; him with one single blast. Else use 3 shot spread fire to wear him down.
+; Take frequent turns to avoid fire, and if we get hit alot increase the amount
+; of turns.
+;
+; This robot is no way near finished, but I just didn't have enough time
+; to finish version 1.0...
+;-------------------variable declarations-----------------------;
+#DEF	DUMMY		;It seems to be a bug in the encryption
+			;system that makes the first line disappear when I lock.
+			;So I put something there that I ain't using.
+#MSG	STAND STILL!
+#DEF 	ARMOR_LEVEL
+#DEF 	LAST_SIGHT
+#DEF	CTRL
+#DEF	TIME_TURN
+#DEF	LAST_TURN
+#DEF	AMOUNT_TURN
+#DEF	TARGET_FOUND
+#DEF	SCAN_ARC
+#DEF	SCAN_DIR
+#DEF	T_HEADING
+#DEF	LAST_CHECK
+#DEF	TEMP
+
+#DEF 	MAIN_LOOP
+#DEF 	ARMAGEDDON
+#DEF 	MOVE_WAY
+#DEF 	FIND_TARGET
+#DEF 	SHOOT_TARGET
+#DEF 	CHECKHIT
+#DEF	T_INFO
+#DEF	SAFE_COOL
+#DEF	rounds
+
+;-------------------code starts---------------------;
+
+;******INITIALISATIONS******;
+
+OUT	P_THROTTLE,		100
+
+OUT	P_CHANNEL,		6670	;If it is one of the friendly robots, order
+MOV	AX,			6215	;him to drop dead
+INT	I_TRANSMIT			;
+
+MOV 	AX,			1	; When I turn i shall still aim in
+INT 	I_KEEPSHIFT			; the same direction.
+OUT 	20,			361	; Shut-down level on 361
+					; Just above what should
+					; actually be possible to happen
+
+MOV	TIME_TURN,		50	; determines how often and how much
+MOV	AMOUNT_TURN,		-45	; to turn, may be changed by the checkhit routine
+MOV 	MAIN_LOOP,		100	; These so I can write call move_way
+MOV 	MOVE_WAY,		200	; instead of call 200
+MOV 	FIND_TARGET,		300
+MOV 	SHOOT_TARGET,		400
+MOV	CHECKHIT,		500
+MOV	ARMAGEDDON,		600
+MOV	SAFE_COOL		700
+
+IN	P_ARMOR,		ARMOR_LEVEL
+;******END INITIALISATIONS******;
+
+;******MAIN LOOP******;
+
+:100
+CALL 	FIND_TARGET			;Where are you?
+:101
+CALL 	MOVE_WAY			;Navigate
+:102
+
+INC	rounds
+ERR	rounds
+CMP 	TARGET_FOUND,		1	;If we didn't find the target before
+JB 	100				;start over.
+CALL	SHOOT_TARGET			;If we did, shoot at it.
+
+JMP 101					;Start over
+;******END MAIN LOOP******;
+
+
+;******MOVE WAY******;
+;NAVIGATIONAL ROUTINE
+:200
+
+INT 	I_LOCATE			;Where are we?
+IN 	P_COMPASS,		AX	;In which direction are we facing?
+
+CMP 	EX,			100	;Are we close to the left wall?
+JA 	202				;No, lets continue
+CMP 	AX,			128	;Yes, but are we going from it or at it?
+JB 	204				;From it, lets continue
+OUT	P_THROTTLE,		49	;At it, lets slow down
+CMP 	AX, 			192	;Is it closer to turn to the right or the left?
+JB 	201				;To the left , jump to it
+OUT 	P_STEERING,		70	;To the right, lets turn
+JMP 	210				;jump to end of nav. routine
+:201
+OUT 	P_STEERING,		185	;Turn right
+JMP	210				;jump to end of nav. routine
+
+:202
+
+CMP 	EX,			900
+JB	204
+CMP	AX,			128
+JA	206
+OUT	P_THROTTLE,		49
+CMP	AX,			64
+JB	203
+OUT	P_STEERING,		70
+JMP 	210
+:203
+OUT	P_STEERING,		185
+JMP	210
+
+:204
+
+CMP	FX,			100
+JA	206
+OUT	P_THROTTLE,		49
+CMP	AX,			64
+JA	205
+OUT	P_STEERING,		70
+JMP	210
+:205
+CMP	AX,			192
+JB	211
+OUT	P_STEERING,		185
+JMP	210
+
+:206
+
+CMP	FX,			900
+JB	211
+OUT	P_THROTTLE,		49
+CMP	AX,			64
+JB	211
+;OUT	P_STEERING,		192
+
+;JMP	210
+
+CMP	AX,			192
+JA	211
+cmp	AX,			128
+JB	207
+OUT	P_STEERING,		70
+JMP	210
+:207
+OUT	P_STEERING		185
+
+
+:210
+
+INT 	6
+MOV	LAST_TURN,		FX
+RET
+
+
+:211
+
+CALL	CHECKHIT
+
+OUT	P_THROTTLE,		100
+
+INT	6
+MOV	TEMP,			FX
+SUB	TEMP,			LAST_TURN
+CMP	TEMP,			TIME_TURN
+JB	212
+OUT	P_STEERING,		AMOUNT_TURN
+MOV	LAST_TURN,		FX
+:212
+RET
+;******END MOVE WAY******;
+
+;******FIND TARGET******;
+;SCANNING ROUTINE TO FIND THE ENEMY
+;THE "FIRST" TIME.AFTER FOUND THE 
+;SHOOTING ROUTINE WILL KEEP TRACK OF
+;HIM, BUT AS FAST AS IT LOSES HIM THIS
+;ROUTINE WILL BE CALLED AGAIN.
+
+DO 4
+:300
+
+OUT	17,			64
+OUT	13,			0
+IN	7,			AX
+CMP	AX,			2000
+JB	301
+OUT	12,			128
+IN	7,			AX
+CMP	AX,			2000
+JA	305
+
+
+:301
+IN	8,			BX
+SHL	BX,			5
+OUT	12,			BX
+OUT	17,			16
+IN	7,			AX
+CMP	AX,			2000
+JA	305
+IN	8,			BX
+SHL	BX,			3
+OUT	12,			BX
+OUT	17,			8
+IN	7,			AX
+CMP	AX,			2000
+JA	305
+IN	8,			BX
+SHL	BX,			2
+OUT	12,			BX
+MOV	TARGET_FOUND,		1
+RET
+
+:305
+
+IN	9,			AX
+CMP	AX,			200
+JA	306
+IN	16,			AX
+IN	5,			BX
+SUB	AX,			BX
+OUT	12,			AX	
+MOV	TARGET_FOUND,		2
+RET
+:306
+MOV	TARGET_FOUND,		0
+RET
+
+;******END FIND TARGET******;
+
+;******SHOOT TARGET******;
+; THIS ROUTINE SHALL KEEP
+; TRACK OF THE ENEMY ONCE
+; FOUND, AND SHOOT AT HIM
+
+:400
+CMP	TARGET_FOUND,		2
+JB	401
+IN	2,			AX
+CMP	AX,			10
+JA	451
+OUT	P_FIRE
+OUT	P_FIRE,			-4
+OUT	P_FIRE,			4
+:451
+MOV	TARGET_FOUND,		0
+RET
+
+:401
+
+OUT	17,			4
+IN	7,			AX
+CMP	AX,			2000
+JA	410
+IN	8,			BX
+ADD	BX,			BX
+OUT	12,			BX
+INT	9
+CMP	FX,			15
+JA	402
+CALL	ARMAGEDDON
+RET
+:402
+MOV	T_HEADING,		EX
+AND	T_HEADING,		127;
+CMP	T_HEADING,		126;
+JA	404
+CMP	T_HEADING,		2
+JB	404
+JMP	405
+:404
+CALL	ARMAGEDDON
+RET
+:405
+OUT	17,			2
+IN	7,			AX
+CMP	AX,			2000
+JA	420
+IN	8,			BX
+OUT	12,			BX
+IN	2,			AX
+CMP	AX,			10
+JA	452
+
+;AND	AX			255
+;SHR	AX			2
+;ADD	AX			448
+;GET	AX			AX
+OUT	P_FIRE,			BX
+SUB 	BX,			1
+OUT	P_FIRE,			BX
+ADD	BX,			2
+OUT	P_FIRE,			BX
+SUB	BX,			1
+OUT	12,			BX
+:452
+RET
+
+:410
+
+OUT	17,			8
+IN	7,			AX
+CMP	AX,			2000
+JB	411
+MOV	TARGET_FOUND,		0
+RET
+:411
+IN	8,			BX
+SHL	BX,			2
+OUT	12,			BX
+IN	2,			AX
+CMP	AX,			10
+JA	454
+
+OUT	P_FIRE,
+OUT	P_FIRE,			3
+OUT	P_FIRE,			-3
+:454
+RET
+
+:420
+OUT	17,			4
+IN	7,			AX
+CMP	AX,			2000
+JA	410
+IN	8,			BX
+ADD	BX,			BX
+OUT	12,			BX
+IN	2,			AX
+CMP	AX,			10
+JA	454
+
+OUT	P_FIRE,
+OUT	P_FIRE,			2
+OUT	P_FIRE,			-2
+RET
+
+
+
+;******END SHOOT TARGET******;
+
+;******CHECKHIT******;
+; THIS ROUTINE CHANGES
+; SOME TURNING TACTICS
+; IF THIS ROBOT GETS
+; HIT ALOT AND SOME SHOOTING
+; TACTICS IF HE DOESN'T HIT
+; ANYTHING.
+
+:500
+
+IN	6,			BX
+
+CMP	BX,			ARMOR_LEVEL
+JE	505
+MOV	ARMOR_LEVEL		,BX
+MOV	TIME_TURN,		50
+SHR	BX,			1
+ADD	TIME_TURN,		BX
+
+CMP	AMOUNT_TURN,		-50
+JB	502
+SUB	AMOUNT_TURN,		5
+:502
+IN	10,			AX
+AND	AX,			0XFF
+OUT	14,			AX
+INT	6
+MOV	LAST_TURN,		FX
+:505
+RET
+
+;******END CHECKHIT******;
+
+;******ARMAGEDDON******;
+; IF THE TARGET STANDS STILL,
+; IS ON THE WAY STRAIGHT
+; AT US OR FROM US THIS
+; ROUTINE TRIES TO KILL HIM
+; AT ONCE!
+
+:600
+
+OUT	P_THROTTLE,		0
+
+:601
+IN	1,			AX
+CMP	AX,20
+JA	601
+
+
+DO	2
+:602
+OUT	P_ARC,			2
+IN	P_SCAN,			AX
+CMP	AX,			2000
+JB	603
+OUT	P_ARC,			4
+IN	P_SCAN,			AX
+CMP	AX,			2000
+IN	8,			BX
+ADD	BX,			BX
+OUT	12,			BX
+LOOP	602
+RET
+:603
+IN	8,			BX
+OUT	P_OVERBURN,		1
+OUT	P_FIRE,			BX
+OUT	P_FIRE,			BX
+OUT	P_FIRE,			BX
+OUT	P_FIRE,			BX
+OUT	P_FIRE,			BX
+OUT	P_FIRE,			BX
+OUT	P_FIRE,			BX
+OUT	P_FIRE,			BX
+OUT	P_FIRE,			BX
+OUT	P_FIRE,			BX
+OUT	P_OVERBURN,		0
+CALL	SAFE_COOL
+RET
+
+;******END ARMAGEDDON******;
+
+;******SAFE COOL******;
+; AFTER THE ARMAGEDDON
+; ROUTINE THE ROBOT
+; NEEDS TO COOL FOR A
+; WHILE, THIS ROUTINE
+; TRIES TO KEEP THE
+; ROBOT OUT OF HEAVY
+; FIRE AS LONG AS HE IS
+; HOT
+
+:700
+OUT	17,			8
+OUT	P_THROTTLE,		100
+INT 	I_LOCATE
+IN 	P_COMPASS,		AX
+
+CMP 	EX,			100
+JA 	702
+CMP 	AX,			128
+JB 	704
+OUT	P_THROTTLE,		49
+CMP 	AX, 			192
+JB 	701
+OUT 	P_STEERING,		64
+JMP 	710
+:701
+OUT 	P_STEERING,		192
+JMP	710
+
+:702
+
+CMP 	EX,			900
+JB	704
+CMP	AX,			128
+JA	706
+OUT	P_THROTTLE,		49
+CMP	AX,			64
+JB	703
+OUT	P_STEERING,		64
+JMP 	710
+:703
+OUT	P_STEERING,		192
+JMP	710
+
+:704
+
+CMP	FX,			100
+JA	706
+OUT	P_THROTTLE,		49
+CMP	AX,			64
+JA	705
+OUT	P_STEERING,		64
+JMP	710
+:705
+CMP	AX,			192
+JB	711
+OUT	P_STEERING,		192
+JMP	710
+
+:706
+
+CMP	FX,			900
+JB	711
+OUT	P_THROTTLE,		49
+CMP	AX,			64
+JB	711
+OUT	P_STEERING,		192
+JMP	710
+:707
+CMP	AX,			192
+JA	711
+OUT	P_STEERING,		64
+
+:710
+
+INT 	6
+MOV	LAST_TURN,		FX
+
+:711
+CALL	CHECKHIT
+
+IN	7,			AX
+CMP	AX,			2000
+MOV	TARGET_FOUND,		1
+JB 720
+CALL	712
+CMP	TARGET_FOUND,		1
+JE	720
+JMP	730
+:720
+IN	8,			BX
+ADD	BX,			BX
+ADD	BX,			BX
+OUT	12,			BX
+INT	9
+IN	4,			AX
+SUB	AX,			FX
+CMP	AX,			0
+JA	721
+ADD	AX,			256
+:721
+CMP	AX,			24
+JA	722
+OUT	14,			25
+JMP	730
+:722
+CMP 	AX,			231
+JB	723
+OUT	14,			230
+JMP	730
+:723
+SUB	AX,			128
+CMP	AX,			0
+JA	724
+ADD	AX,			255
+:724
+CMP	AX,			24
+JA	725
+OUT	14,			48
+JMP	730
+:725
+CMP 	AX,			231
+JB	730
+OUT	14,			220
+
+:730
+IN	2,			AX
+CMP	AX,			10
+JA	700
+RET
+
+
+
+:712
+DO 2
+:713
+OUT	17,			64
+IN	7,			AX
+CMP	AX,			2000
+JB	714
+OUT	12,			128
+LOOP	713
+MOV	TARGET_FOUND,		0
+RET
+:714
+IN	8,			BX
+;SAL	BX,			5
+SHL	BX,			5
+;ADD	BX,			BX
+;ADD	BX,			BX
+;ADD	BX,			BX
+;ADD	BX,			BX
+;ADD	BX,			BX
+OUT	12,			BX
+OUT	17,			32
+IN	7,			AX
+CMP	AX,			2000
+JB	715
+MOV	TARGET_FOUND,		0
+RET
+:715
+IN	8,			BX
+;SAL	BX,			4
+SHL	BX,			4
+;ADD	BX,			BX
+;ADD	BX,			BX
+;ADD	BX,			BX
+;ADD	BX,			BX
+OUT	12,			BX
+OUT	17,			16
+IN	7,			AX
+CMP	AX,			2000
+JB	716
+MOV	TARGET_FOUND,		0
+RET
+:716
+IN	8,			BX
+;SHL	BX,			3
+ADD	BX,			BX
+ADD	BX,			BX
+ADD	BX,			BX
+OUT	12,			BX
+RET
