@@ -10,25 +10,37 @@ import { Robot, CommandEnum, ConstantEnum } from '../types';
 import { isMicrocodeValidForLine } from '../util/isMicrocodeValid';
 import { findAngleInt } from '../findAngle';
 import { lowerUpperBounds } from '../inBounds';
+import { constants } from 'http2';
 
-enum VMError {
-  STACK_ARRAY_FULL,
-  LABEL_NOT_FOUND,
-  CANNOT_ASSIGN_VALUE,
-  ILLEGAL_MEMORY_REFERENCE,
-  STACK_ARRAY_EMPTY,
-  ILLEGAL_INSTRUCTION,
-  RETURN_OUT_OF_RANGE,
-  DIVIDE_BY_ZERO,
-  'UNRESOLVED_!LABEL',
-  INVALID_INTERRUPT_CALL,
-  INVALID_PORT_ACCESS,
-  COMM_QUEUE_EMPTY,
-  NO_MINES_ARRAY_LAYER,
-  NO_MINES_LEFT,
-  NO_SHEILD_INSTALLED,
-  INVALID_MICROCODE,
-  UNKNOWN_ERROR,
+// even though the robot vm handles directions from 0-255, the sim uses radians
+export interface TickOutput {
+  desiredHeading: number; // RADIANS
+  desiredSpeed: number;
+  desiredTurrentRotation: number// Radians
+  currentLife: number;
+  currentHeat: number;
+  layMine: boolean;
+  fireMissile: boolean;
+}
+
+enum ErrorCodes {
+  STACK_ARRAY_FULL = 'Stack array full - too many calls?',
+  LABEL_NOT_FOUND = "Label not found.",
+  CANNOT_ASSIGN_VALUE = 'Cannot assign value',
+  ILLEGAL_MEMORY_REFERENCE = 'Illegal memory reference',
+  STACK_ARRAY_EMPTY = 'Stack array empty - Too many Rets?',
+  ILLEGAL_INSTRUCTION = 'Illegal instruction',
+  RETURN_OUT_OF_RANGE = 'Return out of range',
+  DIVIDE_BY_ZERO = 'Divide by zero',
+  'UNRESOLVED_!LABEL' = 'Unresolved !label',
+  INVALID_INTERRUPT_CALL = 'Invalid Interrupt Call',
+  INVALID_PORT_ACCESS = 'Invalid port access',
+  COMM_QUEUE_EMPTY = 'com queue empty',
+  NO_MINES_ARRAY_LAYER = 'No mine array',
+  NO_MINES_LEFT = 'No mines left',
+  NO_SHEILD_INSTALLED = 'No shield installed',
+  INVALID_MICROCODE = 'Invalid microcode instruction',
+  UNKNOWN_ERROR = 'Unknown error',
 }
 
 enum Interrupt {
@@ -117,22 +129,99 @@ enum Mem {
 }
 
 export const RobotVMFactory = ({
-  armor,
-  engine,
-  heatsinks,
-  mines,
-  scanner,
-  shield,
-  weapon,
+  armor: armorPoints,
+  engine: enginePoints,
+  heatsinks: heatsinkPoints,
+  mines: minePoints,
+  scanner: scannerPoints,
+  shield: shieldPoints,
+  weapon: weaponPoints,
   name,
   program,
   robot_time_limit,
 }: Robot.Config): RobotVM => {
+  /*
+  ROBOT CONFIGURATIONS:
 
-  let targetSpeed: number;
-  let targetHeading: number;
-  let shift: number;
-  let accuracy: number;
+  Your robot has many devices at its command, such as a scanner, a weapon,
+and an engine. You can adjust these devices, and change the emphasis in
+your robot's design to custom-tweek it to suit your particular choice of
+tactics. There are also some devices that can be added to your robot that
+it would not otherwise have. These adjustments are made using the compiler
+directive called "config".
+
+For example:     #config scanner=1  ; This reduces scan range to 350 meters.
+
+  By manipulating the number of points you have invested in each device,
+you can change the overall configuration of your robot. Here are the tables
+showing the effect and point-costs for each device:  (an asterisk (*) denotes
+the default value for each device)
+
+Points   Scanner  Weapon    Armor    Engine  Heatsinks  Mines  Shield
+------   -------  ------  ---------  ------  ---------  -----  ------
+   0       250     0.50   0.50,1.33   0.50     0.75       2*    None*
+   1       350     0.80   0.66,1.20   0.80     1.00*      4       -
+   2       500     1.00*  1.00,1.00*  1.00*    1.125      6       -
+   3       700     1.20   1.20,0.85   1.20     1.25      10     Weak
+   4      1000     1.35   1.30,0.75   1.35     1.33      16     Medium
+   5      1500*    1.50   1.50,0.66   1.50     1.50      24     Strong
+  
+
+Scanner:   This is the maximum range your scanner can see.
+Weapon:    A multiplier placed upon your missiles damage, speed, and heat.
+Armor:     Two multipliers:   1. Armor multiplier   2. Speed multiplier
+Engine:    This is the multiplier applied to your maximum speed.
+Heatsinks: Change in heat dissipation (multiplier).
+Mines:     This is the number of mines you start the battle with.
+Shield:    It takes at least 3 points to get one. Blocks damage
+
+  Shield damage blocking:
+
+  Weak:    2/3 damage gets through, and 2/3 converted to heat. (1/3 overlap)
+  Medium:  1/2 damage gets through, other half turned to heat.
+  Strong:  1/3 damage gets through, and 1/3 converted to heat.
+
+
+These multipliers are adjustments placed upon what the standard numbers
+would be. For instance, Heatsinks=5 will dissipate heat 50% faster than
+the default of Heatsinks=1.
+
+You have a maximum of 12 points to allocate to all these systems and
+devices. You can total less than 12, but not more.
+
+Note- The speed multipliers from the engine and armor are both factored
+into your maximum speed. However, the throttle is still percentage based,
+so Throttle 100 is still maximum speed. Same goes for your armor; 100% is
+still maximum armor. The armor difference is actually achieved by adjusting
+the damage taken rather than the total number of armor points.
+  */
+  const scanner = [250, 350, 500, 750, 1000, 1500][lowerUpperBounds(scannerPoints, 0, 5)];
+  const weapon = [.5, .8, 1, 1.2, 1.35, 1.5][lowerUpperBounds(weaponPoints, 0, 5)];
+  const armor = [.5, .66, 1, 1.2, 1.3, 1.5][lowerUpperBounds(armorPoints, 0, 5)]
+  const armorSpeedMultiplier = [1.33, 1.2, 1, .85, .75, .66][lowerUpperBounds(armorPoints, 0, 5)]
+  const engine = [.5, .8, 1, 1.2, 1.35, 1.5][lowerUpperBounds(enginePoints, 0, 5)]
+  const headsinks = [.75, 1, 1.125, 1.25, 1.33, 1.5][lowerUpperBounds(heatsinkPoints, 0, 5)];
+  const mines = [2, 4, 6, 10, 16, 24][lowerUpperBounds(minePoints, 0, 5)];
+  enum ShieldStrength {
+    NONE,
+    WEAK,
+    MEDIUM,
+    STRONG,
+  }
+  const shield = [
+    ShieldStrength.NONE,
+    ShieldStrength.NONE,
+    ShieldStrength.NONE,
+    ShieldStrength.WEAK,
+    ShieldStrength.MEDIUM,
+    ShieldStrength.STRONG,
+  ][lowerUpperBounds(shieldPoints, 0, 5)]
+
+  let desiredSpeed: number = 0;
+  let desiredHeading: number = 0;
+  let desiredTurrentRotation = 0;
+  let shift: number = 0;
+  let accuracy: number = 0;
   let incrementIP = true;
 
   const ramArray: number[] = new Array(RAM_SIZE).fill(0);
@@ -141,22 +230,31 @@ export const RobotVMFactory = ({
   const stackArray = new Array(STACK_SIZE).fill(0);
   const mineArray = new Array(MINES_SIZE);
 
+  let currentX;
+  let currentY;
   let currentSpeed = 0;
   let currentHeat = 0;
-  let heading = 0;
-  let currentArmor = armor || 3;
+  let currentHeading = 0;
+  let currentLife = 1000;
+  let currenTurretRotation = 0;
+
+  let gameCycle = 0;
+
   let scanArc = 0;
   let shutdown = 0;
+
   let err = 0;
   // execution helpers
   let lineNumber = 0;
-
+  let linesExecuted = 0;
   let delayLeft = 0;
   let timeLeft = 0;
-  let timeSlice = 0;
+  let timeSlice = 5;
+  let maxTime = 0;
 
   let overburn = false;
   let shieldsUp = false;
+  let isCooling = false;
   let lshields = false;
   let keepshift = false;
 
@@ -169,6 +267,7 @@ export const RobotVMFactory = ({
   let startKills = 0;
   let deaths = 0;
   let metersTraveled = 0;
+
 
   const getFromRam = (ramIndex: number, unused: number): number => {
     if (ramIndex <= RAM_SIZE) {
@@ -183,7 +282,7 @@ export const RobotVMFactory = ({
     if (ramArray[Mem.STACK_POINTER] >= 0 && ramArray[Mem.STACK_POINTER] < (STACK_SIZE - 1)) {
       stackArray[++ramArray[Mem.STACK_POINTER]] = value;
     } else {
-      robotError(VMError.STACK_ARRAY_FULL);
+      robotError(ErrorCodes.STACK_ARRAY_FULL);
     }
   };
 
@@ -191,13 +290,13 @@ export const RobotVMFactory = ({
     if (ramArray[Mem.STACK_POINTER] >= 0 && ramArray[Mem.STACK_POINTER] < STACK_SIZE) {
       return stackArray[ramArray[Mem.STACK_POINTER]--];
     }
-    robotError(VMError.ILLEGAL_INSTRUCTION);
+    robotError(ErrorCodes.STACK_ARRAY_EMPTY);
   };
 
   const findLabel = (label: number, microcode: number) => {
     let j;
     if (microcode === 3) {
-      robotError(VMError.LABEL_NOT_FOUND);
+      robotError(ErrorCodes.LABEL_NOT_FOUND, { label, microcode });
       throw new Error();
     }
     if (microcode === 4) {
@@ -217,24 +316,148 @@ export const RobotVMFactory = ({
   };
 
   // old 'do_robot'
-  const tick = () => {
-    if (currentArmor <= 0) {
+  const tick = (): Partial<TickOutput> => {
+    let fireMissile = false;
+    let layMine = false;
+
+    if (currentLife <= 0) {
       // you're already dead
-      return;
+      return {
+
+      }
     }
 
-    executeInstruction();
-
+    // time slice
+    timeLeft = timeSlice;
+    if (timeLeft > robot_time_limit && robot_time_limit > 0) {
+      timeLeft = robot_time_limit;
+    }
+    if (timeLeft > maxTime && maxTime > 0) {
+      timeLeft = maxTime;
+    }
+    linesExecuted = 0;
 
     // execute time slice
+    while (timeLeft > 0 && !isCooling && linesExecuted < (20 + timeSlice) && currentLife > 0) {
+      gameCycle++;
+      if (delayLeft < 0) {
+        delayLeft = 0;
+      }
+
+      if (delayLeft > 0) {
+        delayLeft--;
+        timeLeft--;
+      }
+      if (timeLeft > 0 && delayLeft === 0) {
+        // step
+        executeInstruction();
+      }
+
+      if (currentHeat >= shutdown) {
+        isCooling = true;
+        shieldsUp = false;
+      }
+
+      if (currentHeat >= 500) {
+        // destroy
+        damage(1000, true);
+      }
+    }
 
 
     // validate vairables
+    desiredHeading = (desiredHeading + 1024) & 255;
+    currentHeading = (currentHeading + 1024) & 255;
+    shift = (shift + 1024) & 255;
+    desiredSpeed = lowerUpperBounds(desiredSpeed, -75, 100);
+    // current speed is set bounded, as the value comes from the sim
+    lastDamage < MAX_INT && lastDamage++;
+    lastHit < MAX_INT && lastHit++;
 
     // update heat
+    if (shieldsUp && (gameCycle & 3) === 0) {
+      currentHeat++;
+    }
+    if (!shieldsUp) {
+      if (currentHeat > 0) {
+        switch (heatsinkPoints) {
+          case 5:
+            (gameCycle & 1) === 0 && currentHeat--;
+            break;
+          case 4:
+            (gameCycle & 3) === 0 && currentHeat--;
+            break;
+          case 3:
+            (gameCycle & 3) === 0 && currentHeat--;
+            break;
+          case 2:
+            (gameCycle & 7) === 0 && currentHeat--;
+            break;
+          case 1:
+            // do nothing
+            break;
+          case 0:
+            (gameCycle & 3) === 0 && currentHeat++;
+            break;
+        }
+        if (overburn && gameCycle % 3 === 0) {
+          currentHeat++;
+        }
+        
+        currentHeat > 0 && currentHeat--;
+
+        if (currentHeat > 0 && (gameCycle & 7) === 0 && Math.abs(desiredSpeed) <= 25) {
+          currentHeat--;
+        }
+
+        if (currentHeat <= shutdown - 50 || currentHeat <= 0) {
+          isCooling = false;
+        }
+      }
+    }
+
+    if (isCooling) {
+      desiredSpeed = 0;
+    }
+
+    let heatMultiplier = 1;
+    if (currentHeat >= 250){
+      heatMultiplier = .5;
+    } else if (currentHeat >= 200) {
+      heatMultiplier = .75;
+    } else if (currentHeat >= 150) {
+      heatMultiplier = .85;
+    } else if (currentHeat >= 100) {
+      heatMultiplier = .95;
+    } else if (currentHeat >= 80) {
+      heatMultiplier = .98;
+    }
+
+    if (overburn) {
+      heatMultiplier *= 1.3;
+    }
+
+    if (
+      (currentHeat >= 475 && (gameCycle & 3) === 0) ||
+      (currentHeat >= 450 && (gameCycle & 7) === 0) ||
+      (currentHeat >= 400 && (gameCycle & 15) === 0) ||
+      (currentHeat >= 350 && (gameCycle & 31) === 0) ||
+      (currentHeat >= 300 && (gameCycle & 63) === 0) 
+      ){
+        // apply heat damage
+      damage(1, true);
+    }
 
     // robot movement
-
+    return {
+      currentHeat,
+      currentLife,
+      desiredHeading,
+      desiredSpeed,
+      desiredTurrentRotation,
+      fireMissile,
+      layMine,
+    }
   };
 
   // ask sim for target scan
@@ -292,7 +515,7 @@ export const RobotVMFactory = ({
       }
       return tmp;
     }
-    robotError(VMError.COMM_QUEUE_EMPTY);
+    robotError(ErrorCodes.COMM_QUEUE_EMPTY);
     return 0;
   };
 
@@ -311,16 +534,16 @@ export const RobotVMFactory = ({
         retVal = currentHeat;
         break;
       case (ConstantEnum.P_COMPASS):
-        retVal = heading;
+        retVal = currentHeading;
         break;
       case (ConstantEnum.P_TURRET_OFS):
         retVal = shift;
         break;
       case (ConstantEnum.P_TURRET_ABS):
-        retVal = (shift + heading) & 255;
+        retVal = (shift + currentHeading) & 255;
         break;
       case (ConstantEnum.P_DAMAGE):
-        retVal = currentArmor;
+        retVal = currentLife;
         break;
       case (ConstantEnum.P_SCAN):
         retVal = scan();
@@ -382,7 +605,7 @@ export const RobotVMFactory = ({
         }
         break;
       default:
-        robotError(VMError.INVALID_PORT_ACCESS);
+        robotError(ErrorCodes.INVALID_PORT_ACCESS);
     }
     return {
       value: retVal,
@@ -394,7 +617,7 @@ export const RobotVMFactory = ({
     let retTimeUsed = 0;
     switch (port) {
       case (ConstantEnum.P_THROTTLE):
-        targetSpeed = value;
+        desiredSpeed = value;
         break;
       case (ConstantEnum.P_OFS_TURRET):
         shift = (shift + value + 1024) & 255;
@@ -403,7 +626,7 @@ export const RobotVMFactory = ({
         shift = (value + 1024) & 255;
         break;
       case (ConstantEnum.P_STEERING):
-        targetHeading = (targetHeading + value + 1024) & 255;
+        desiredHeading = (desiredHeading + value + 1024) & 255;
         break;
       case (ConstantEnum.P_WEAPON):
         retTimeUsed = 3;
@@ -425,7 +648,7 @@ export const RobotVMFactory = ({
         shieldsUp = shield > 3 && !!value;
         break;
       default:
-        robotError(VMError.INVALID_PORT_ACCESS);
+        robotError(ErrorCodes.INVALID_PORT_ACCESS);
     }
     // ? this is odd
     scanArc = lowerUpperBounds(scanArc, 0, 64);
@@ -439,8 +662,8 @@ export const RobotVMFactory = ({
   const resetSoftware = () => {
     ramArray.fill(0);
     stackArray.fill(0);
-    targetHeading = heading;
-    targetSpeed = 0;
+    desiredHeading = currentHeading;
+    desiredSpeed = 0;
     scanArc = 8;
     shift = 0;
     err = 0;
@@ -458,23 +681,23 @@ export const RobotVMFactory = ({
 
   };
 
-  const getX = (): number => {
+  const setX = (x: number) => {
     // get x coord from world
-    return 0;
+    currentX = x;
   };
-  const getY = (): number => {
+  const setY = (y: number) => {
     // get x coord from world
-    return 0;
+    currentY = y;
   };
 
-  const getSpeed = (): number => {
+  const setSpeed = (speed: number) => {
     // get speed from sim
-    return 0;
+    currentSpeed = lowerUpperBounds(speed, -75, 100);
   };
 
   // get current time from sim
-  const getGameCycle = (): number => {
-    return 0;
+  const setCycle = (cycle) => {
+    ;
   };
 
   // create a missile in the sim
@@ -501,8 +724,8 @@ export const RobotVMFactory = ({
         retTimeUsed = 10;
         break;
       case Interrupt.LOCATE:
-        ramArray[Mem.EX_REGISTER] = Math.floor(getX());
-        ramArray[Mem.FX_REGISTER] = Math.floor(getY());
+        ramArray[Mem.EX_REGISTER] = Math.floor(currentX);
+        ramArray[Mem.FX_REGISTER] = Math.floor(currentY);
         retTimeUsed = 5;
         break;
       case Interrupt.KEEPSHIFT:
@@ -518,7 +741,7 @@ export const RobotVMFactory = ({
         retTimeUsed = 2;
         break;
       case Interrupt.TIMER:
-        const currentTic = getGameCycle();
+        const currentTic = gameCycle;
         ramArray[Mem.EX_REGISTER] = currentTic >> 16;
         ramArray[Mem.FX_REGISTER] = currentTic & 65535;
         retTimeUsed = 2;
@@ -527,7 +750,7 @@ export const RobotVMFactory = ({
         // between 0 and 1000
         const tmp1 = Math.max(0, Math.min(ramArray[Mem.EX_REGISTER], 1000));
         const tmp2 = Math.max(0, Math.min(ramArray[Mem.FX_REGISTER], 1000));
-        ramArray[Mem.AX_REGISTER] = findAngleInt(Math.round(getX()), Math.round(getY()), tmp1, tmp2);
+        ramArray[Mem.AX_REGISTER] = findAngleInt(Math.round(currentX), Math.round(currentY), tmp1, tmp2);
         retTimeUsed = 32;
         break;
       }
@@ -547,7 +770,7 @@ export const RobotVMFactory = ({
         retTimeUsed = 4;
         break;
       case Interrupt.ROBOT_INFO:
-        ramArray[Mem.DX_REGISTER] = Math.round(getSpeed() * 100);
+        ramArray[Mem.DX_REGISTER] = Math.round(setSpeed() * 100);
         ramArray[Mem.EX_REGISTER] = lastDamage;
         ramArray[Mem.FX_REGISTER] = lastHit;
         retTimeUsed = 5;
@@ -591,7 +814,7 @@ export const RobotVMFactory = ({
         metersTraveled = 0;
         break;
       default:
-        robotError(VMError.INVALID_INTERRUPT_CALL);
+        robotError(ErrorCodes.INVALID_INTERRUPT_CALL);
     }
     return retTimeUsed;
   };
@@ -602,12 +825,12 @@ export const RobotVMFactory = ({
       lineNumber = location;
       incrementIP = false;
     } else {
-      robotError(VMError.LABEL_NOT_FOUND);
+      robotError(ErrorCodes.LABEL_NOT_FOUND);
     }
   };
 
-  const robotError = (error: VMError) => {
-    console.error(error);
+  const robotError = (error: ErrorCodes, ...args) => {
+    console.error(error, `cycle: ${gameCycle}`, ...args);
   };
 
   const getValue = (lineNum: number, operationIndex: number): number => {
@@ -630,12 +853,12 @@ export const RobotVMFactory = ({
     let i = program[lineNum][operationNum];
     if ((microcodeBitmask & 7) === 1) {
       if (i < 0 || i > RAM_SIZE) {
-        robotError(VMError.STACK_ARRAY_EMPTY);
+        robotError(ErrorCodes.STACK_ARRAY_EMPTY);
       } else {
         if ((microcodeBitmask & 8) > 0) {
           i = ramArray[i];
           if (i < 0 || i > RAM_SIZE) {
-            robotError(VMError.STACK_ARRAY_EMPTY);
+            robotError(ErrorCodes.STACK_ARRAY_EMPTY);
           } else {
             ramArray[i] = value;
           }
@@ -644,14 +867,14 @@ export const RobotVMFactory = ({
         }
       }
     } else {
-      robotError(VMError.ILLEGAL_MEMORY_REFERENCE);
+      robotError(ErrorCodes.ILLEGAL_MEMORY_REFERENCE);
     }
   };
 
   const executeInstruction = () => {
 
-    ramArray[0] = targetSpeed;
-    ramArray[1] = targetHeading;
+    ramArray[0] = desiredSpeed;
+    ramArray[1] = desiredHeading;
     ramArray[2] = shift;
     ramArray[3] = accuracy;
 
@@ -663,7 +886,7 @@ export const RobotVMFactory = ({
 
     if (!isMicrocodeValidForLine(program[lineNumber])) {
       timeUsed = 1;
-      robotError(VMError.INVALID_MICROCODE);
+      robotError(ErrorCodes.INVALID_MICROCODE);
     }
 
     if (![0,1].includes(program[lineNumber][MAX_OP] & 7)) {
@@ -700,7 +923,7 @@ export const RobotVMFactory = ({
           if (tmp !== 0) {
             putValue(lineNumber, 1, getValue(lineNumber, 1) / getValue(lineNumber, 2));
           } else {
-            robotError(VMError.DIVIDE_BY_ZERO);
+            robotError(ErrorCodes.DIVIDE_BY_ZERO);
           }
           timeUsed = 10;
           break;
@@ -710,7 +933,7 @@ export const RobotVMFactory = ({
           if (tmp !== 0) {
             putValue(lineNumber, 1, getValue(lineNumber, 1) % getValue(lineNumber, 2));
           } else {
-            robotError(VMError.DIVIDE_BY_ZERO);
+            robotError(ErrorCodes.DIVIDE_BY_ZERO);
           }
           timeUsed = 10;
           break;
@@ -718,7 +941,7 @@ export const RobotVMFactory = ({
         case (CommandEnum.RET):
           lineNumber = pop();
           if (lineNumber < 0 || lineNumber > program.length) {
-            robotError(VMError.RETURN_OUT_OF_RANGE);
+            robotError(ErrorCodes.RETURN_OUT_OF_RANGE);
           }
           break;
         case (CommandEnum.GSB): {
@@ -728,7 +951,7 @@ export const RobotVMFactory = ({
             incrementIP = false;
             lineNumber = location;
           } else {
-            robotError(VMError.CANNOT_ASSIGN_VALUE);
+            robotError(ErrorCodes.CANNOT_ASSIGN_VALUE);
           }
           break;
         }
@@ -822,7 +1045,7 @@ export const RobotVMFactory = ({
             const tmp2 = tmp - RAM_SIZE;
             putValue(lineNumber, 1, program[tmp2 >> 2][tmp2 & 3]);
           } else {
-            robotError(VMError.STACK_ARRAY_EMPTY);
+            robotError(ErrorCodes.STACK_ARRAY_EMPTY);
           }
           timeUsed = 2;
           break;
@@ -832,7 +1055,7 @@ export const RobotVMFactory = ({
           if (tmp >= 0 && tmp < RAM_SIZE) {
             ramArray[tmp] = getValue(lineNumber, 1);
           } else {
-            robotError(VMError.STACK_ARRAY_EMPTY);
+            robotError(ErrorCodes.STACK_ARRAY_EMPTY);
           }
           timeUsed = 2;
           break;
@@ -864,7 +1087,7 @@ export const RobotVMFactory = ({
           putValue(lineNumber, 1, pop());
           break;
         case (CommandEnum.ERR):
-          robotError(getValue(lineNumber, 1));
+          // robotError(getValue(lineNumber, 1));
           break;
         case (CommandEnum.INC):
           putValue(lineNumber, 1, getValue(lineNumber, 1) + 1);
@@ -920,25 +1143,36 @@ export const RobotVMFactory = ({
             incrementIP = false;
             lineNumber = location;
           } else {
-            robotError(VMError.CANNOT_ASSIGN_VALUE);
+            robotError(ErrorCodes.CANNOT_ASSIGN_VALUE);
           }
           break;
         }
         default:
-          robotError(VMError.ILLEGAL_INSTRUCTION);
+          robotError(ErrorCodes.ILLEGAL_INSTRUCTION);
       }
     }
     delayLeft += timeUsed;
     if (incrementIP) {
       lineNumber++;
     }
+    linesExecuted++;
   };
 
-
+  const setWorldInfo = ({
+    x,
+    y,
+    speed,
+    heading,
+  }: SetWorldInfoInput) => {
+    currentX = x;
+    currentY = y;
+    currentSpeed = speed;
+  }
 
 
   return {
     tick,
+    setWorldInfo,
     // comReceive,
   }
 }
@@ -955,7 +1189,15 @@ export enum RobotVMCommand {
   SONOR,
 }
 
+export interface SetWorldInfoInput {
+  x: number,
+  y: number,
+  speed: number,
+  heading: number, // radians
+}
+
 export interface RobotVM {
   tick: () => void;
+  setWorldInfo: (input: SetWorldInfoInput) => void
   // comReceive: () => void;
 }

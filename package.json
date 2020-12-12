@@ -13,6 +13,8 @@
     "start": "node server.js",
     "start:dev": "webpack-dev-server --hot --color --progress --info=true --config webpack.dev.js",
     "test": "jest",
+    "test:unit": "jest --config jest.config.unit.js --coverage --runInBand",
+    "test:unit:watch": "jest --config jest.config.unit.js --coverage --watch --runInBand",
     "eslint": "eslint --ext .tsx,.js ./src/",
     "lint": "npm run eslint",
     "format": "prettier --check --write ./src/**/*.{tsx,ts,js}",

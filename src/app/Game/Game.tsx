@@ -110,7 +110,10 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
       if (render) {
         Render.stop(render)
         Engine.clear(engine);
-        
+        render.canvas.remove()
+        render.canvas = null;
+        render.context = null;
+        render.textures = {};
       }
     }
 
