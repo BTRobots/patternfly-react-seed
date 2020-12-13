@@ -43,3 +43,13 @@ export const robotToRadians = (decimal: number) => {
 export const radiansToRobot = (radians: number) => {
   return degreesToRobot(radiansToDegrees(radians));
 }
+
+const preceision = 100.0;
+export const radianRound = (radian) => Math.floor(radian * preceision) / preceision;
+
+export const radianCompare = (radian1, radian2) => {
+   const roundedRadian1 = Math.floor(radian1 * preceision);
+   const roundedRadian2 = Math.floor(radian2 * preceision);
+
+   
+}

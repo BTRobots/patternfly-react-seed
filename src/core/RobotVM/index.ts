@@ -250,7 +250,7 @@ the damage taken rather than the total number of armor points.
   let linesExecuted = 0;
   let delayLeft = 0;
   let timeLeft = 0;
-  let timeSlice = 5;
+  let timeSlice = 1 // 5;
   let maxTime = 0;
 
   let overburn = false;

@@ -25,7 +25,7 @@ export interface GameProps {
   width: number,
   isRunning: boolean,
   randomStartLocations?: boolean,
-  canvas?: HTMLCanvasElement
+  canvas?: HTMLCanvasElement,
 }
 
 const getStartXPosition = (mapWidth: number) => {
@@ -84,21 +84,34 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
         });
         let robotVMs = robotConfigs.map(rConfig => RobotVMFactory(rConfig));
 
+        const tankWidth = spritesheet?.textures['Hulls_Color_A/Hull_01.png'].width * tankScale;
+        const tankHeight = spritesheet?.textures['Hulls_Color_A/Hull_01.png'].height * tankScale;
+        const turretWidth = spritesheet?.textures['Weapon_Color_A_256X256/Gun_01.png'].width * tankScale;
+        const turretHeight = spritesheet?.textures['Weapon_Color_A_256X256/Gun_01.png'].height * tankScale;
 
 
+
+        const tankStartXPosition = robotVMs.length === 1
+          ? width / 2
+          : getStartXPosition(width);
+        const tankStartYPosition = robotVMs.length === 1
+          ? height /2
+          : getStartYPosition(height);
         const tankComposites = robotVMs.map((vm, index) => {
           const tankBody = Bodies.rectangle(
-            getStartXPosition(width),
-            getStartYPosition(height),
-            spritesheet?.textures['Hulls_Color_A/Hull_01.png'].width * tankScale,
-            spritesheet?.textures['Hulls_Color_A/Hull_01.png'].height * tankScale,
+            tankStartXPosition,
+            tankStartYPosition,
+            tankWidth,
+            tankHeight,
             {
               id: index,
-              angle: Math.floor(2 * Math.PI * Math.random()), // random angle
+              label: `tank_${index}`,
+              // angle: Math.floor(2 * Math.PI * Math.random()), // random angle
               collisionFilter: {
                 category: tankCollisionCategory,
+                group: -1,
               },
-
+              density: 100,
               frictionAir: 1,
               render: {
                 sprite: {
@@ -106,20 +119,21 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
                 }
               }
             });
-          const tankWidth = spritesheet?.textures['Weapon_Color_A_256X256/Gun_01.png'].width * tankScale;
-          const tankHeight = spritesheet?.textures['Weapon_Color_A_256X256/Gun_01.png'].height * tankScale;
           const turretBody = Bodies.rectangle(
-            tankBody.position.x,
-            tankBody.position.y,
-            tankWidth,
-            tankHeight,
+            tankStartXPosition,//tankBody.position.x,
+            tankStartYPosition,//tankBody.position.y,
+            turretWidth,
+            turretHeight,
             {
               id: index+100,
               angle: tankBody.angle,
               frictionAir: 1,
               collisionFilter: {
                category: turretCollisionCategory,
+               group: -1,
               },
+              density: 0.001,
+              label: `turret_${index}`,
               render: {
                 sprite: {
                   texture: 'Weapon_Color_A_256X256/Gun_01.png',
@@ -130,10 +144,10 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
           
           const turretConstraint = Constraint.create({
             bodyA: tankBody,
-            pointA: { x: 0, y: +5},
+            // pointA: { x: 0, y: 4},
             bodyB: turretBody,
-            damping: 0,
-            stiffness: 1,
+            //damping: 0,
+            //  stiffness: 1,
           })
 
           return Composite.create({
@@ -141,9 +155,9 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
               tankBody,
               turretBody,
             ],
-            constraints: [
-              turretConstraint
-            ]
+            // constraints: [
+            //  turretConstraint
+            //]
           });
         });
         /*
@@ -180,10 +194,6 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
       if (render) {
         Render.stop(render)
         Engine.clear(engine);
-        render.canvas.remove()
-        render.canvas = null;
-        render.context = null;
-        render.textures = {};
       }
     }
 

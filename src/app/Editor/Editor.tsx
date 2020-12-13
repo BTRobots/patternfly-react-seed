@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import { PageSection, Title, Bullseye, Gallery, GalleryItem, Grid, GridItem, Flex, FlexItem, Button, TextInput } from '@patternfly/react-core';
 import { NewRobotCard } from './NewRobotCard';
 import { deleteRobot, getRobotList, saveRobot,  } from '@app/storage';
@@ -24,6 +24,7 @@ const Editor: React.FunctionComponent<{}> = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [codeError, setCodeError] = useState('');
   const [robots, setRobots] = useState(getRobotList());
+  const canvasRef = useRef<HTMLCanvasElement>();
   
   // we'll use user names after any auth is added
   const username = '';
@@ -80,12 +81,14 @@ const Editor: React.FunctionComponent<{}> = () => {
       <div>
         <Grid>
           <GridItem span={6}>
-          <Game
+          <canvas ref={canvasRef}></canvas>
+          {isRunning &&<Game
             isRunning={isRunning}
             height={800}
             width={800}
             robotsPrograms={[currentRobot.file]}
-          />
+            canvas={canvasRef?.current}
+          />}
           </GridItem>
           <GridItem span={6}>
 

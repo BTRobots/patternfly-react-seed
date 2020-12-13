@@ -116,7 +116,7 @@ Render.sprite = function(render, body) {
       sprite = new Sprite(render.spritesheet.texture);
     }
     
-    sprite.anchor.set(0.5);
+    // sprite.anchor.set(0.5);
     sprite.x = body.position.x;
     sprite.y = body.position.y;
     sprite.scale?.set(.2, .2);
@@ -155,6 +155,7 @@ Render.run = (render, engine, robotVMs: RobotVM[], robotTickCallback, tickCounte
 
     Events.on(engine, 'tick', () => {
       tickCounter(++cycle);
+      var bodies = Composite.allBodies(engine.world);
       for (var i = 0; i < robotVMs.length; i++) {
         const {
             currentHeat,
@@ -165,8 +166,28 @@ Render.run = (render, engine, robotVMs: RobotVM[], robotTickCallback, tickCounte
             fireMissile,
             layMine,
         } = robotVMs[i].tick()
+        const turnStep = parseFloat((Math.PI / 1200).toPrecision(3));
+        bodies.forEach(body => {
+            if (body.label === `tank_${i}`) {
+                if (desiredHeading && parseFloat(desiredHeading.toPrecision(3)) !== parseFloat(body.angle.toPrecision(3))) {
+                    
+                    if (body.angle - desiredHeading < turnStep) {
+                        body.angle = desiredHeading;
+                    } else {
+                        // turn towards desired heading
+                        body.angle = desiredHeading - body.angle > 0
+                            ? body.angle + turnStep
+                            : body.angle - turnStep
+                    }
+                }
+            }
+            if (body.label === `turret_${i}`) {
+                if (desiredTurrentRotation) {
+                    body.angle = desiredTurrentRotation;
+                }
+            }
+        })
       }
-
     });
 
 
@@ -195,6 +216,10 @@ Render.run = (render, engine, robotVMs: RobotVM[], robotTickCallback, tickCounte
 Render.stop = function(render) {
     _cancelAnimationFrame(render.frameRequestId);
     render.app.stop();
+    render.canvas.remove();
+    render.canvas = null;
+    render.context = null;
+    render.textures = {};
 };
 
 export { Render };
