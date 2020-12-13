@@ -155,9 +155,9 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
               tankBody,
               turretBody,
             ],
-            // constraints: [
-            //  turretConstraint
-            //]
+            constraints: [
+             turretConstraint
+            ]
           });
         });
         /*

@@ -219,8 +219,8 @@ the damage taken rather than the total number of armor points.
   ][lowerUpperBounds(shieldPoints, 0, 5)]
 
   let desiredSpeed: number = 0;
-  let desiredHeading: number = 0;
-  let desiredTurrentRotation = 0;
+  let desiredHeading: number;
+  let desiredTurrentRotation: number;
   let shift: number = 0;
   let accuracy: number = 0;
   let incrementIP = true;
@@ -367,7 +367,9 @@ the damage taken rather than the total number of armor points.
 
 
     // validate vairables
-    desiredHeading = (desiredHeading + 1024) & 255;
+    if (typeof desiredHeading !== 'undefined') {
+      desiredHeading = (desiredHeading + 1024) & 255;
+    }
     currentHeading = (currentHeading + 1024) & 255;
     shift = (shift + 1024) & 255;
     desiredSpeed = lowerUpperBounds(desiredSpeed, -75, 100);
@@ -453,9 +455,9 @@ the damage taken rather than the total number of armor points.
     return {
       currentHeat,
       currentLife,
-      desiredHeading: robotToRadians(desiredHeading),
+      desiredHeading: typeof desiredHeading === 'undefined' ? undefined : robotToRadians(desiredHeading),
       desiredSpeed,
-      desiredTurrentRotation: robotToRadians(desiredTurrentRotation),
+      desiredTurrentRotation: typeof desiredTurrentRotation === 'undefined' ? undefined : robotToRadians(desiredTurrentRotation),
       fireMissile,
       layMine,
     }
@@ -624,10 +626,10 @@ the damage taken rather than the total number of armor points.
         shift = (shift + value + 1024) & 255;
         break;
       case (ConstantEnum.P_ABS_TURRET):
-        shift = (value + 1024) & 255;
+        desiredTurrentRotation = (value + 1024) & 255;
         break;
       case (ConstantEnum.P_STEERING):
-        desiredHeading = (desiredHeading + value + 1024) & 255;
+        desiredHeading = ((desiredHeading || 0) + value + 1024) & 255;
         break;
       case (ConstantEnum.P_WEAPON):
         retTimeUsed = 3;
@@ -887,7 +889,7 @@ the damage taken rather than the total number of armor points.
     ramArray[3] = accuracy;
 
     let timeUsed = 1;
-
+    incrementIP = true;
     if (lineNumber > program.length || lineNumber < 0) {
       lineNumber = 0;
     }

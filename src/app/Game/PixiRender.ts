@@ -1,5 +1,5 @@
 import { Application, Sprite, Container } from 'pixi.js';
-import { Events, Common, Composite } from 'matter-js';
+import { Events, Common, Composite, Body } from 'matter-js';
 import { RobotVM } from '../../core/RobotVM';
 
 // example taken from https://github.com/jaloplo/pixi.matterjs/edit/master/src/Matter.Pixi.Render.js
@@ -169,9 +169,9 @@ Render.run = (render, engine, robotVMs: RobotVM[], robotTickCallback, tickCounte
         const turnStep = parseFloat((Math.PI / 1200).toPrecision(3));
         bodies.forEach(body => {
             if (body.label === `tank_${i}`) {
-                if (desiredHeading && parseFloat(desiredHeading.toPrecision(3)) !== parseFloat(body.angle.toPrecision(3))) {
+                if (typeof desiredHeading !== 'undefined' && parseFloat(desiredHeading.toPrecision(3)) !== parseFloat(body.angle.toPrecision(3))) {
                     
-                    if (body.angle - desiredHeading < turnStep) {
+                    if (Math.abs(body.angle - desiredHeading) < turnStep) {
                         body.angle = desiredHeading;
                     } else {
                         // turn towards desired heading
@@ -180,9 +180,19 @@ Render.run = (render, engine, robotVMs: RobotVM[], robotTickCallback, tickCounte
                             : body.angle - turnStep
                     }
                 }
+                if (typeof desiredSpeed !== 'undefined' && desiredSpeed !== 0) {
+                    /*Body.setPosition(body, {
+                        x: body.position.x + Math.sin(body.angle) * (desiredSpeed / 100),
+                        y: body.position.y + Math.cos(body.angle) * (desiredSpeed / 100),
+                    })*/
+                    Body.applyForce(body, body.position, {
+                        x: Math.sin(body.angle) * (desiredSpeed) * 5,
+                        y: -Math.cos(body.angle) * (desiredSpeed) * 5,
+                    })
+                }
             }
             if (body.label === `turret_${i}`) {
-                if (desiredTurrentRotation) {
+                if (typeof desiredTurrentRotation !== 'undefined') {
                     body.angle = desiredTurrentRotation;
                 }
             }
