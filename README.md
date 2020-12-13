@@ -1,5 +1,7 @@
 # BTRobots
 
+Node.js > v14.x recommended
+
 ## Development Scripts
 
 Install development/build dependencies
@@ -12,7 +14,7 @@ Run a production build
 `npm run build`
 
 Run the test suite
-`npm run test`
+`npm run test:unit`
 
 Run the linter
 `npm run lint`
