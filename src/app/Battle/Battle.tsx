@@ -86,7 +86,7 @@ const Battle: React.FunctionComponent<{}> = () => {
       {robotFiles &&
       <Game
         isRunning={started}
-        height={800}
+        height={600}
         width={800}
         robotsPrograms={robotFiles}
         canvas={canvasRef?.current}

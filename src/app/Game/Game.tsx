@@ -11,13 +11,9 @@ import { compile } from '../../core';
 import { Render } from './PixiRender';
 
 
-const tankCollisionCategory = 0x0001;
-const turretCollisionCategory = 0x0002;
-const mineCollisionCategory = 0x0004;
-const missileCollisionCategory = 0x0008;
-
-
-
+const defaultCollisionCategory = 0x0001;
+const tankCollisionCategory = 0x0002;
+const turretCollisionCategory = 0x0004;
 
 export interface GameProps {
   robotsPrograms: string[],
@@ -43,18 +39,6 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
   const [render, setRender] = useState<Render>();
 
 
-  //useEffect(() => {
-
-
-    // const sheet = new Spritesheet(BaseTexture.from(spritesheetUrl), spritesheetJSON);
-    // setSpritesheet(sheet);
-    // const t = Texture.from(spritesheetUrl, )
-    //Loader.shared.add('tanks', spritesheetJSON);
-    //Object.keys(sheet.data.frames).forEach(key => {
-    //  Texture.addToCache(Texture.from(spritesheetUrl), key)
-    //})
-  //}, []);
-
   useEffect(() => {
     if (isRunning) {
       let render;
@@ -71,9 +55,13 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
         engine.world.gravity.x = 0;
         engine.world.gravity.y = 0;
         
+        // see https://stackoverflow.com/questions/33569688/change-default-canvas-size-in-matterjs
+        canvas?.width = width;
+        canvas?.height = height;
 
         render = Render.create({
           view: canvas || worldRef,
+          canvas,
           engine,
           spritesheet,
           options: {
@@ -109,7 +97,8 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
               // angle: Math.floor(2 * Math.PI * Math.random()), // random angle
               collisionFilter: {
                 category: tankCollisionCategory,
-                group: -1,
+                // group: -1,
+                mask: defaultCollisionCategory | tankCollisionCategory,
               },
               density: 100,
               frictionAir: 1,
@@ -129,8 +118,11 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
               angle: tankBody.angle,
               frictionAir: 1,
               collisionFilter: {
-               category: turretCollisionCategory,
-               group: -1,
+               // category: turretCollisionCategory,
+               // group: -1,
+                category: turretCollisionCategory,
+                mask: 0x000F, // NONE
+                // group: -1,
               },
               density: 0.001,
               label: `turret_${index}`,
@@ -144,10 +136,10 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
           
           const turretConstraint = Constraint.create({
             bodyA: tankBody,
-            // pointA: { x: 0, y: 4},
+            pointA: { x: 0, y: 4},
             bodyB: turretBody,
-            //damping: 0,
-            //  stiffness: 1,
+            damping: 0,
+            stiffness: 1,
           })
 
           return Composite.create({
@@ -183,6 +175,23 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
         tankComposites.forEach(tc => World.addComposite(engine.world, tc));
 
         // World.add(engine.world, tankComposites);
+
+        const wallOptions = {
+          isStatic: true,
+          collisionFilter: {
+            category: defaultCollisionCategory,
+          }
+        }
+        const wallThickness = 10;
+        World.add(engine.world, [
+          // walls
+          Bodies.rectangle(0, 0, width, wallThickness, {...wallOptions, label: 'wall_top' }),
+
+          Bodies.rectangle(0, height - wallThickness , width, wallThickness, {...wallOptions, label: 'wall_bottom' }),
+
+          Bodies.rectangle(0, 0, wallThickness, height, {...wallOptions, label: 'wall_left' }),
+          Bodies.rectangle(width - wallThickness, 0, wallThickness, height, {...wallOptions, label: 'wall_right' }),
+        ]);
 
         Engine.run(engine);
         Render.run(render, engine, robotVMs, () => {}, (cycleCount) => console.log(cycleCount));

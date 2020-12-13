@@ -1,3 +1,4 @@
+import * as PIXI from 'pixi.js';
 import { Application, Sprite, Container } from 'pixi.js';
 import { Events, Common, Composite, Body } from 'matter-js';
 import { RobotVM } from '../../core/RobotVM';
@@ -56,53 +57,6 @@ Render.create = function(options) {
     return render;
 };
 
-// creates a Tank composite
-Render.tank = function(render, body) {
-    //var resource = body.render.sprite.resource;
-
-
-    var texture = body.render.sprite.texture;
-
-    let sprite: Sprite;
-
-    const container = new Container();
-
-    //if(resource) {
-    if(texture) {
-      sprite = new Sprite(render.spritesheet.textures[texture]);
-    } else {
-      sprite = new Sprite(render.spritesheet.texture);
-    }
-    
-    // sprite.anchor.set(0.5);
-    sprite.x = body.position.x;
-    sprite.y = body.position.y;
-    sprite.scale?.set(.2, .2);
-    sprite.rotation = body.angle;
-    body.width = sprite.width;
-    body.height = sprite.height;
-
-    render.sprites[body.id] = sprite;
-
-    container.addChild(sprite);
-    /*
-    const turret = new Sprite(render.spritesheet.textures['Weapon_Color_A_256X256/Gun_01.png'])
-    turret.anchor.set(.5)
-    turret.x = sprite.x// + (sprite.width / 2);
-    turret.y = sprite.y// + (sprite.height * 2 / 3);
-
-    turret.scale.set(.2, .2);
-    turret.rotation = body.angle;
-
-    container.addChild(turret);
-    */
-    
-    render.app.stage.addChild(container);
-    //}
-
-    return container;
-}
-
 Render.sprite = function(render, body) {
     //var resource = body.render.sprite.resource;
     var texture = body.render.sprite.texture;
@@ -112,14 +66,20 @@ Render.sprite = function(render, body) {
     //if(resource) {
     if(texture) {
       sprite = new Sprite(render.spritesheet.textures[texture]);
+
+    sprite.scale?.set(.2, .2);
     } else {
-      sprite = new Sprite(render.spritesheet.texture);
+      if (body.label.includes('wall')) {
+        sprite = new Sprite();
+        sprite.texture = PIXI.Texture.WHITE;
+        sprite.tint = 0xFF0000;
+        sprite.scale?.set((body.bounds.max.x - body.bounds.min.x) / 16, (body.bounds.max.y - body.bounds.min.y) / 16);
+      }
     }
     
     // sprite.anchor.set(0.5);
     sprite.x = body.position.x;
     sprite.y = body.position.y;
-    sprite.scale?.set(.2, .2);
     sprite.rotation = body.angle;
     body.width = sprite.width;
     body.height = sprite.height;

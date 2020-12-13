@@ -84,7 +84,7 @@ const Editor: React.FunctionComponent<{}> = () => {
           <canvas ref={canvasRef}></canvas>
           {isRunning &&<Game
             isRunning={isRunning}
-            height={800}
+            height={600}
             width={800}
             robotsPrograms={[currentRobot.file]}
             canvas={canvasRef?.current}
