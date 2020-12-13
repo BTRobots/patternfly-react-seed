@@ -7,6 +7,9 @@ import {
   Button,
   Flex,
   FlexItem,
+  Card,
+  CardHeader,
+  CardBody,
 } from '@patternfly/react-core';
 import { getRobotList, getRobot } from '@app/storage';
 import { Game } from '../Game/Game';
@@ -82,15 +85,31 @@ const Battle: React.FunctionComponent<{}> = () => {
         </FlexItem>
         <FlexItem><p>{cycleCount}</p></FlexItem>
       </Flex>
-      <canvas ref={canvasRef}></canvas>
-      {robotFiles &&
-      <Game
-        isRunning={started}
-        height={600}
-        width={800}
-        robotsPrograms={robotFiles}
-        canvas={canvasRef?.current}
-      />}
+        <Flex >
+          <FlexItem width={840}>
+            <canvas ref={canvasRef}></canvas>
+            {started && <Game
+              isRunning={started}
+              height={600}
+              width={800}
+              robotsPrograms={robotFiles}
+              canvas={canvasRef?.current}
+            />}
+          </FlexItem>
+          <FlexItem>
+            {selectedRobots.map((robot) => (
+              <Card>
+                <CardHeader>
+                  {robot}
+                </CardHeader>
+                <CardBody>
+                  Health: 1000, Heat: 0
+                </CardBody>
+              </Card>
+            ))}
+
+          </FlexItem>
+        </Flex>
     </PageSection>
   );
 };

@@ -67,7 +67,7 @@ Render.sprite = function(render, body) {
     if(texture) {
       sprite = new Sprite(render.spritesheet.textures[texture]);
 
-    sprite.scale?.set(.2, .2);
+    sprite.scale?.set(.1, .1);
     } else {
       if (body.label.includes('wall')) {
         sprite = new Sprite();
