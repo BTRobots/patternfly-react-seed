@@ -3,12 +3,20 @@ import { PointLikeNumber, Stage } from 'react-pixi-fiber';
 import spritesheetJSON from '../../../assets/spritesheet2.json';
 import spritesheetUrl from '../../../assets/spritesheet.png';
 import { Spritesheet, BaseTexture, Texture, resources, Loader, Sprite } from 'pixi.js';
-import { Engine, Runner, Composites, Common, World, Bodies } from 'matter-js';
+import { Engine, Runner, Composite, Composites, Common, World, Bodies, Constraint, Vector } from 'matter-js';
 import { Tank } from './Tank';
 import { Robot } from '../../core/types'
 import { RobotVMFactory } from '../../core/RobotVM';
 import { compile } from '../../core';
 import { Render } from './PixiRender';
+
+
+const tankCollisionCategory = 0x0001;
+const turretCollisionCategory = 0x0002;
+const mineCollisionCategory = 0x0004;
+const missileCollisionCategory = 0x0008;
+
+
 
 
 export interface GameProps {
@@ -33,7 +41,6 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
   const worldRef = useRef(null);
   const [bodies, setBodies] = useState<Matter.Body[]>();
   const [render, setRender] = useState<Render>();
-
 
 
   //useEffect(() => {
@@ -77,6 +84,69 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
         });
         let robotVMs = robotConfigs.map(rConfig => RobotVMFactory(rConfig));
 
+
+
+        const tankComposites = robotVMs.map((vm, index) => {
+          const tankBody = Bodies.rectangle(
+            getStartXPosition(width),
+            getStartYPosition(height),
+            spritesheet?.textures['Hulls_Color_A/Hull_01.png'].width * tankScale,
+            spritesheet?.textures['Hulls_Color_A/Hull_01.png'].height * tankScale,
+            {
+              id: index,
+              angle: Math.floor(2 * Math.PI * Math.random()), // random angle
+              collisionFilter: {
+                category: tankCollisionCategory,
+              },
+
+              frictionAir: 1,
+              render: {
+                sprite: {
+                  texture: 'Hulls_Color_A/Hull_01.png',
+                }
+              }
+            });
+          const tankWidth = spritesheet?.textures['Weapon_Color_A_256X256/Gun_01.png'].width * tankScale;
+          const tankHeight = spritesheet?.textures['Weapon_Color_A_256X256/Gun_01.png'].height * tankScale;
+          const turretBody = Bodies.rectangle(
+            tankBody.position.x,
+            tankBody.position.y,
+            tankWidth,
+            tankHeight,
+            {
+              id: index+100,
+              angle: tankBody.angle,
+              frictionAir: 1,
+              collisionFilter: {
+               category: turretCollisionCategory,
+              },
+              render: {
+                sprite: {
+                  texture: 'Weapon_Color_A_256X256/Gun_01.png',
+                }
+              }
+            }
+          )
+          
+          const turretConstraint = Constraint.create({
+            bodyA: tankBody,
+            pointA: { x: 0, y: +5},
+            bodyB: turretBody,
+            damping: 0,
+            stiffness: 1,
+          })
+
+          return Composite.create({
+            bodies: [
+              tankBody,
+              turretBody,
+            ],
+            constraints: [
+              turretConstraint
+            ]
+          });
+        });
+        /*
         const _bodies = robotVMs.map((vm, index) => Bodies.rectangle(
             getStartXPosition(width),
             getStartYPosition(height),
@@ -91,17 +161,17 @@ const Game: FunctionComponent<GameProps> = ({ robotsPrograms, height, width, isR
                 }
               }
             }
-        ));
+        ));*/
             
         // robotVMs.forEach(rConfig => Render.addChildren(render, new Sprite(
         //  spritesheet?.textures['Hulls_Color_A/Hull_01.png'])));
         
+        tankComposites.forEach(tc => World.addComposite(engine.world, tc));
 
-
-        World.add(engine.world, _bodies);
+        // World.add(engine.world, tankComposites);
 
         Engine.run(engine);
-        Render.run(render, engine, robotVMs);
+        Render.run(render, engine, robotVMs, () => {}, (cycleCount) => console.log(cycleCount));
       })();
 
         

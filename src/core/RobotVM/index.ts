@@ -11,6 +11,7 @@ import { isMicrocodeValidForLine } from '../util/isMicrocodeValid';
 import { findAngleInt } from '../findAngle';
 import { lowerUpperBounds } from '../inBounds';
 import { constants } from 'http2';
+import { radiansToRobot, robotToRadians } from '../util/radians';
 
 // even though the robot vm handles directions from 0-255, the sim uses radians
 export interface TickOutput {
@@ -225,7 +226,7 @@ the damage taken rather than the total number of armor points.
   let incrementIP = true;
 
   const ramArray: number[] = new Array(RAM_SIZE).fill(0);
-  ramArray[Mem.STACK_POINTER] = -1;
+  ramArray[Mem.STACK_POINTER] = 0;
 
   const stackArray = new Array(STACK_SIZE).fill(0);
   const mineArray = new Array(MINES_SIZE);
@@ -241,7 +242,7 @@ the damage taken rather than the total number of armor points.
   let gameCycle = 0;
 
   let scanArc = 0;
-  let shutdown = 0;
+  let shutdown = 400;
 
   let err = 0;
   // execution helpers
@@ -452,9 +453,9 @@ the damage taken rather than the total number of armor points.
     return {
       currentHeat,
       currentLife,
-      desiredHeading,
+      desiredHeading: robotToRadians(desiredHeading),
       desiredSpeed,
-      desiredTurrentRotation,
+      desiredTurrentRotation: robotToRadians(desiredTurrentRotation),
       fireMissile,
       layMine,
     }
@@ -632,8 +633,14 @@ the damage taken rather than the total number of armor points.
         retTimeUsed = 3;
         fireMissile(value);
         break;
-      case (ConstantEnum.P_SCAN):
+      case (ConstantEnum.P_ARC):
         scanArc = value;
+        break;
+      case (ConstantEnum.P_OVERBURN):
+        overburn = value > 0;
+        break;
+      case (ConstantEnum.P_SHUTDOWN):
+        shutdown = value;
         break;
       case (ConstantEnum.P_CHANNEL):
         channel = value;
@@ -770,7 +777,7 @@ the damage taken rather than the total number of armor points.
         retTimeUsed = 4;
         break;
       case Interrupt.ROBOT_INFO:
-        ramArray[Mem.DX_REGISTER] = Math.round(setSpeed() * 100);
+        ramArray[Mem.DX_REGISTER] = Math.round(currentSpeed * 100);
         ramArray[Mem.EX_REGISTER] = lastDamage;
         ramArray[Mem.FX_REGISTER] = lastHit;
         retTimeUsed = 5;
@@ -840,8 +847,9 @@ the damage taken rather than the total number of armor points.
 
     if ((microcodeBitmask & 7) === 1) {
       return getFromRam(operation, microcodeBitmask);
+    } else {
+      outVal = operation;
     }
-    outVal = 1;
     if ((microcodeBitmask & 8) > 0) {
       return getFromRam(outVal, microcodeBitmask);
     }
@@ -1167,6 +1175,7 @@ the damage taken rather than the total number of armor points.
     currentX = x;
     currentY = y;
     currentSpeed = speed;
+    currentHeading = radiansToRobot(heading);
   }
 
 
@@ -1197,7 +1206,7 @@ export interface SetWorldInfoInput {
 }
 
 export interface RobotVM {
-  tick: () => void;
+  tick: () => Partial<TickOutput>;
   setWorldInfo: (input: SetWorldInfoInput) => void
   // comReceive: () => void;
 }

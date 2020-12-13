@@ -16,6 +16,7 @@ const Battle: React.FunctionComponent<{}> = () => {
   const [selectedRobots, setSelectedRobots] = useState<string[]>([]);
   const [started, setStarted] = useState(false);
   const [robotFiles, setRobotFiles] = useState<string[]>();
+  const [ cycleCount, setCycleCount] = useState(0);
 
   const canvasRef = useRef<HTMLCanvasElement>();
 
@@ -79,6 +80,7 @@ const Battle: React.FunctionComponent<{}> = () => {
         <FlexItem>
           <Button disabled={started} onClick={startGame}>Start Battle!</Button>
         </FlexItem>
+        <FlexItem><p>{cycleCount}</p></FlexItem>
       </Flex>
       <canvas ref={canvasRef}></canvas>
       {robotFiles &&

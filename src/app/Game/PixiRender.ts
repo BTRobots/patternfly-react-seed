@@ -1,4 +1,4 @@
-import { Application, Sprite, ObservablePoint } from 'pixi.js';
+import { Application, Sprite, Container } from 'pixi.js';
 import { Events, Common, Composite } from 'matter-js';
 import { RobotVM } from '../../core/RobotVM';
 
@@ -56,12 +56,16 @@ Render.create = function(options) {
     return render;
 };
 
-
+// creates a Tank composite
 Render.tank = function(render, body) {
     //var resource = body.render.sprite.resource;
+
+
     var texture = body.render.sprite.texture;
 
-    var sprite: Partial<Sprite> = {};
+    let sprite: Sprite;
+
+    const container = new Container();
 
     //if(resource) {
     if(texture) {
@@ -70,7 +74,7 @@ Render.tank = function(render, body) {
       sprite = new Sprite(render.spritesheet.texture);
     }
     
-    sprite.anchor.set(0.5);
+    // sprite.anchor.set(0.5);
     sprite.x = body.position.x;
     sprite.y = body.position.y;
     sprite.scale?.set(.2, .2);
@@ -80,10 +84,23 @@ Render.tank = function(render, body) {
 
     render.sprites[body.id] = sprite;
 
-    render.app.stage.addChild(sprite);
+    container.addChild(sprite);
+    /*
+    const turret = new Sprite(render.spritesheet.textures['Weapon_Color_A_256X256/Gun_01.png'])
+    turret.anchor.set(.5)
+    turret.x = sprite.x// + (sprite.width / 2);
+    turret.y = sprite.y// + (sprite.height * 2 / 3);
+
+    turret.scale.set(.2, .2);
+    turret.rotation = body.angle;
+
+    container.addChild(turret);
+    */
+    
+    render.app.stage.addChild(container);
     //}
 
-    return sprite;
+    return container;
 }
 
 Render.sprite = function(render, body) {
@@ -124,19 +141,32 @@ Render.remove = function(render, body) {
 /*
   MAIN LOOP
 */
-Render.run = (render, engine, robotVMs: RobotVM[]) => {
+Render.run = (render, engine, robotVMs: RobotVM[], robotTickCallback, tickCounter) => {
     var bodies = Composite.allBodies(engine.world);
     for (var i = 0; i < bodies.length; i++) {
         var body = bodies[i];
+
         if(body.render && body.render.sprite) {
             Render.sprite(render, body);
+            // Render.tank(render, body);
         }
     }
+    let cycle = 0;
 
     Events.on(engine, 'tick', () => {
+      tickCounter(++cycle);
       for (var i = 0; i < robotVMs.length; i++) {
-        robotVMs[i].tick()
+        const {
+            currentHeat,
+            currentLife,
+            desiredHeading,
+            desiredSpeed,
+            desiredTurrentRotation,
+            fireMissile,
+            layMine,
+        } = robotVMs[i].tick()
       }
+
     });
 
 
